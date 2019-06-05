@@ -5,7 +5,7 @@ import libclient
 
 
 class Client:
-    def __init__(self, host='127.0.0.1', port=65000):
+    def __init__(self, host='192.168.1.40', port=65000):
         self.sel = selectors.DefaultSelector()
         self.host, self.port = host, port
 
