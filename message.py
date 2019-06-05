@@ -88,15 +88,14 @@ class Message:
         return message
 
     def _create_response_json_content(self):
-        request = Request(self.request.get('sender'),
-                          self.request.get('receiver'),
+        request = Request(self.request.get('request_sender'),
                           self.request.get('action'),
-                          self.request.get('content'))
+                          self.request.get('request_content'))
 
-        content = {'content': request.process_request(), 'action': request.action}
+        response_body = {'response_content': request.process_request(), 'action': request.action}
         content_encoding = 'utf-8'
         response = {
-            'content_bytes': self._json_encode(content, content_encoding),
+            'content_bytes': self._json_encode(response_body, content_encoding),
             'content_type': "text/json",
             'content_encoding': content_encoding,
             'status': request.get_status_code()
@@ -105,9 +104,8 @@ class Message:
 
     def _create_response_binary_content(self):
         request = Request(self.request.get('sender'),
-                          self.request.get('receiver'),
                           self.request.get('action'),
-                          self.request.get('content'))
+                          self.request.get('request_content'))
 
         response = {
             'content_bytes': b"First 10 bytes of request: "
@@ -147,22 +145,6 @@ class Message:
 
     def close(self):
         print("closing connection to", self.addr, '\n')
-        #dubugging
-        msg_list = []
-        dialogs = Users.get_user('gleb').get_all_dialogs()
-        for k, v in dialogs.items():
-            for msg in v.get_messages():
-                msg_list.append(msg.asdict())
-        response = json.dumps(msg_list)
-        print('gleb dialogs', response)
-
-        msg_list = []
-        dialogs = Users.get_user('ivan').get_all_dialogs()
-        for k, v in dialogs.items():
-            for msg in v.get_messages():
-                msg_list.append(msg.asdict())
-        response = json.dumps(msg_list)
-        print('ivan dialogs', response)
 
         try:
             self.selector.unregister(self.sock)

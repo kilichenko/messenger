@@ -3,7 +3,7 @@ import app_client
 
 
 class Response:
-    #valid_actions = ('search', 'message', 'save', 'getnewmsgs', 'getallmsgs', 'register')
+    #valid_actions = ('search', 'message', 'save', 'getnewmsgs', 'getallmsgs', 'register', 'connect')
     status_codes = {'OK': 0, 'ERR': 1}
 
     def __init__(self, action: str, content: str):
@@ -12,16 +12,27 @@ class Response:
         self.client: app_client.Client = app_client.Client()
 
     def process_response(self) -> str:
-        response = ''
+        result = ''
         if self.action == 'message':
             pass
+        elif self.action == 'save':
+            pass
+        elif self.action == 'search':
+            pass
+        #expects {response_content: {message_array: [{content: str, sender: str, recipient: str}]}}
         elif self.action == 'getallmsgs':
             pass
+        # expects {response_content: {message_array: [{content: str, sender: str, recipient: str}]}}
         elif self.action == 'getnewmsgs':
             content = json.loads(self.content)
-            if content['content']:
-                self.client.run(action='save', content=self.content, sender='gleb')
-                for msg in content['content']:
-                    response += msg.get('sender') + ': ' + msg.get('content') + '\n'
-
-        return response
+            if content['message_array']:
+                #self.client.run(action='save', request_content=content['response_content']['message_array'], request_sender='gleb')
+                self.client.run(action='save', request_content=self.content,
+                                request_sender='gleb')
+                for msg in content['message_array']:
+                    result += msg.get('sender') + ': ' + msg.get('content') + '\n'
+        elif self.action == 'register':
+            pass
+        elif self.action == 'register':
+            pass
+        return result

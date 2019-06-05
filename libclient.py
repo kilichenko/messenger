@@ -4,13 +4,15 @@ import json
 import io
 import struct
 import response
+from typing import Dict
+
 
 class Message:
     def __init__(self, selector, sock, addr, request):
         self.selector = selector
         self.sock = sock
         self.addr = addr
-        self.request = request
+        self.request: Dict = request
         self._recv_buffer = b""
         self._send_buffer = b""
         self._request_queued = False
@@ -81,7 +83,7 @@ class Message:
         return message
 
     def _process_response_json_content(self):
-        rspns = response.Response(self.response.get('action'), self.response.get('content'))
+        rspns = response.Response(self.response.get('action'), self.response.get('response_content'))
         output = rspns.process_response()
         if output:
             print(output)
@@ -142,18 +144,18 @@ class Message:
             self.sock = None
 
     def queue_request(self):
-        content = self.request["content"]
+        request_content = self.request["request_body"]
         content_type = self.request["type"]
         content_encoding = self.request["encoding"]
         if content_type == "text/json":
             req = {
-                "content_bytes": self._json_encode(content, content_encoding),
+                "content_bytes": self._json_encode(request_content, content_encoding),
                 "content_type": content_type,
                 "content_encoding": content_encoding,
             }
         else:
             req = {
-                "content_bytes": content,
+                "content_bytes": request_content,
                 "content_type": content_type,
                 "content_encoding": content_encoding,
             }

@@ -2,7 +2,7 @@ import socket
 import selectors
 import traceback
 import libclient
-
+from typing import Dict
 
 class Client:
     def __init__(self, host='192.168.1.40', port=65000):
@@ -11,17 +11,16 @@ class Client:
 
 
     @staticmethod
-    def create_request(action, sender, content, receiver):
+    def create_request(action, request_sender, request_content) -> Dict:
         if action in ('search', 'message', 'save', 'getnewmsgs', 'getallmsgs', 'register'):
             return {'type': "text/json", 'encoding': "utf-8",
-                    'content': {'action': action, 'content': content, 'sender': sender, 'receiver': receiver}}
+                    'request_body': {'action': action, 'request_content': request_content, 'request_sender': request_sender}}
         else:
             return {'type': "binary/custom-client-binary-type", 'encoding': "binary",
-                    'content': bytes(action + content, encoding="utf-8")}
+                    'request_body': bytes(action + request_content, encoding="utf-8")}
 
     def start_connection(self, host, port, request):
         addr = (host, port)
-        #print("starting connection to", addr)
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.setblocking(False)
         sock.connect_ex(addr)
@@ -29,9 +28,9 @@ class Client:
         message = libclient.Message(self.sel, sock, addr, request)
         self.sel.register(sock, events, data=message)
 
-    def run(self, action, sender, content=None, receiver=None):
-        request = self.create_request(action=action, content=content,
-                                      sender=sender, receiver=receiver)
+    def run(self, action, request_sender, request_content=None):
+        request = self.create_request(action=action, request_content=request_content,
+                                      request_sender=request_sender)
         self.start_connection(self.host, self.port, request)
 
         try:

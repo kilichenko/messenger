@@ -1,22 +1,19 @@
 from app_client import Client
-import time
+import user
 
-sender, receiver = 'ivan', 'gleb'
-content = ''
-action = 'message'
+request_sender = 'gleb'
 
 
 def main():
-    msg = ''
-    while msg != 'q':
-        msg = input('Input message: ')
+    inpt = ''
+    while inpt != 'q':
+        inpt = input('Input message: ')
+        msg = user.UserMessage(sender='gleb', recipient='ivan', content=inpt)
         client = Client()
-        client.run(action=action, content=msg, sender=sender, receiver=receiver)
-        client = Client()
-        client.run(action='getnewmsgs', sender=sender)
+        client.run(action='message', request_content=msg.asdict(), request_sender=request_sender)
 
-def get_sender():
-    return sender
+        client = Client()
+        client.run(action='getnewmsgs', request_sender=request_sender)
 
 
 if __name__ == "__main__":

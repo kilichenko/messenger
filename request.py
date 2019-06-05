@@ -5,12 +5,11 @@ import json
 
 
 class Request:
-    #valid_actions = ('search', 'message', 'save', 'getnewmsgs', 'getallmsgs', 'register')
+    #valid_actions = ('search', 'message', 'save', 'getnewmsgs', 'getallmsgs', 'register', 'connect')
     status_codes = {'OK': 0, 'ERR': 1}
 
-    def __init__(self, sender: str, recipient: str, action: str, content: str):
+    def __init__(self, sender: str,  action: str, content: str):
         self.sender: str = sender
-        self.recipient: str = recipient
         self.action: str = action
         self.content: str = content
         self.status: int = Request.status_codes.get('OK')
@@ -23,37 +22,47 @@ class Request:
 
         request_sender = Users.get_user(self.sender)
 
+        #expects content is username
         if self.action == "search":
             if self.content in u2kht.u2k:
-                response['content'] = u2kht.u2k[self.content]
+                response['key'] = u2kht.u2k[self.content]
+        #expects content is dict {content: str, sender: str, recipient: str}
         elif self.action == 'message':
-            request_recipient = Users.get_user(self.recipient)
-            request_recipient.add_undelivered_message(UserMessage(self.sender, self.recipient, self.content))
-            request_recipient.add_msg_to_dialog(self.recipient, UserMessage(self.sender, self.recipient, self.content))
-            response = {'content': self.content, 'recipient': self.recipient}
+            #Why self.content is dict?!
+            message = UserMessage.parse_from_dict(self.content)
+            message_recipient = Users.get_user(message.recipient)
+            message_recipient.add_undelivered_message(message)
+            message_recipient.add_msg_to_dialog(message.sender, message)
+        #expects content is dict {message_array: [{content: str, sender: str, recipient: str}]}
         elif self.action == 'save':
-            content = json.loads(self.content)
-            if content['content']:
-                for msg in content['content']:
-                    msg = UserMessage(msg.get('sender'), msg.get('recipient'), msg.get('content'))
+            request_content = json.loads(self.content)
+            if request_content['response_content']['message_array']:
+                for msg in request_content['response_content']['message_array']:
+                    msg = UserMessage.parse_from_dict(json.loads(self.content))
                     message_sender = Users.get_user(msg.sender)
                     message_sender.add_msg_to_dialog(msg.recipient, msg)
-                response['content'] = self.content
+        #expects empty content
+        #returns {response_content: {message_array: [{content: str, sender: str, recipient: str}]}}
         elif self.action == 'getallmsgs':
             msg_list = []
             dialogs = request_sender.get_all_dialogs()
             for k, v in dialogs.items():
                 for msg in v.get_messages():
                     msg_list.append(msg.asdict())
-            response['content'] = msg_list
+            response = {'message_array': msg_list}
+        #expects empty content
+        #returns {response_content: {message_array: [{content: str, sender: str, recipient: str}]}}
         elif self.action == 'getnewmsgs':
             msg_list = []
             msgs = request_sender.get_undelivered_messages()
             while len(msgs) != 0:
                 msg = msgs.pop()
                 msg_list.append(msg.asdict())
-            response['content'] = msg_list
+            response = {'message_array': msg_list}
+        #expects content is dict {login: str, password: str, public_key: str}
         elif self.action == 'register':
+            pass
+        elif self.action == 'connect':
             pass
 
         return json.dumps(response)
