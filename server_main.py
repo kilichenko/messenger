@@ -1,9 +1,9 @@
-"""Main module
-"""
-
+import datetime
+import time
 from user import User, Users
 from server import Server
 from user_message import UserMessage
+
 
 def add_dull_data():
     gleb = User('gleb', '1111', 'gefgerger')
@@ -12,7 +12,14 @@ def add_dull_data():
     ivan.add_undelivered_message(UserMessage('gleb', 'ivan', 'test message1'))
     ivan.add_undelivered_message(UserMessage('gleb', 'ivan', 'test message2'))
 
+
+def myfunc():
+    pass
+
+
 def main():
+    var = {'myfunc': myfunc}
+    var['myfunc']()
     add_dull_data()
     server = Server('192.168.1.40', 65000)
     server.run()

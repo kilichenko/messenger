@@ -197,6 +197,7 @@ class Message:
         self._recv_buffer = self._recv_buffer[content_len:]
         if self.jsonheader["content-type"] == "text/json":
             encoding = self.jsonheader["content-encoding"]
+            #decode request
             self.request = self._json_decode(data, encoding)
             print("received request", repr(self.request), "from", self.addr)
         else:

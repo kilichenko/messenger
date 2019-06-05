@@ -1,5 +1,6 @@
-#from user import User as Usr
+import datetime
 from typing import Dict
+import time
 
 
 class UserMessage:
@@ -7,8 +8,19 @@ class UserMessage:
         self.sender = sender
         self.recipient = recipient
         self.content = content
+        self.timestamp = None
 
-    def asdict(self):
+    def set_timestamp(self):
+        self.timestamp = time.time()
+
+    def get_timestamp(self):
+        return self.timestamp
+
+    def get_formatted_timestamp(self):
+        if self.timestamp:
+            return datetime.datetime.fromtimestamp(self.timestamp).strftime('%Y:%m:%d %H:%M:%S')
+
+    def as_dict(self):
         return {'sender': self.sender, 'recipient': self.recipient, 'content': self.content}
 
     @staticmethod

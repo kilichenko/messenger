@@ -10,7 +10,7 @@ def main():
         inpt = input('Input message: ')
         msg = user.UserMessage(sender='gleb', recipient='ivan', content=inpt)
         client = Client()
-        client.run(action='message', request_content=msg.asdict(), request_sender=request_sender)
+        client.run(action='message', request_content=msg.as_dict(), request_sender=request_sender)
 
         client = Client()
         client.run(action='getnewmsgs', request_sender=request_sender)
