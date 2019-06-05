@@ -14,7 +14,7 @@ def add_dull_data():
 
 def main():
     add_dull_data()
-    server = Server('127.0.0.1', 65000)
+    server = Server('192.168.1.40', 65000)
     server.run()
 
 
