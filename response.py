@@ -12,10 +12,16 @@ class Response:
         self.client: app_client.Client = app_client.Client()
 
     def process_response(self) -> str:
+        response = ''
         if self.action == 'message':
             pass
         elif self.action == 'getallmsgs':
-            self.client.run(action='save', content=self.content, sender='gleb')
+            pass
         elif self.action == 'getnewmsgs':
-            self.client.run(action='save', content=self.content, sender='gleb')
-        return self.content
+            content = json.loads(self.content)
+            if content['content']:
+                self.client.run(action='save', content=self.content, sender='gleb')
+                for msg in content['content']:
+                    response += msg.get('sender') + ': ' + msg.get('content') + '\n'
+
+        return response

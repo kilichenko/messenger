@@ -21,7 +21,7 @@ class Client:
 
     def start_connection(self, host, port, request):
         addr = (host, port)
-        print("starting connection to", addr)
+        #print("starting connection to", addr)
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.setblocking(False)
         sock.connect_ex(addr)

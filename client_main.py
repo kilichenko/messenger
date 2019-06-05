@@ -2,14 +2,14 @@ from app_client import Client
 import time
 import threading
 
-sender, receiver = 'ivan', 'gleb'
+sender, receiver = 'gleb', 'ivan'
 content = ''
 action = 'message'
 
 
 def main():
     getter = threading.Thread(target=getter_thread)
-    #getter.run()
+    getter.run()
     msg = ''
     while msg != 'q':
         msg = input('Input message: ')
@@ -19,8 +19,10 @@ def main():
 
 def getter_thread():
     while True:
-        time.sleep(5)
-        print('5 sec elapsed')
+        time.sleep(2)
+        client = Client()
+        client.run(action='getnewmsgs', sender=sender)
+
 
 
 def get_sender():
