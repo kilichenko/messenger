@@ -5,8 +5,6 @@ import io
 import struct
 
 from request import Request
-import u2kht
-from user import Users
 
 
 class Message:
@@ -20,6 +18,7 @@ class Message:
         self.jsonheader = None
         self.request = None
         self.response_created = False
+
 
     def _set_selector_events_mask(self, mode):
         """Set selector to listen for events: mode is 'r', 'w', or 'rw'."""
@@ -73,14 +72,13 @@ class Message:
         return obj
 
     def _create_message(
-            self, *, content_bytes, content_type, content_encoding, status
+            self, *, content_bytes, content_type, content_encoding
     ):
         jsonheader = {
             'byteorder': sys.byteorder,
             'content-type': content_type,
             'content-encoding': content_encoding,
-            'content-length': len(content_bytes),
-            'status': status
+            'content-length': len(content_bytes)
         }
         jsonheader_bytes = self._json_encode(jsonheader, 'utf-8')
         message_hdr = struct.pack('>H', len(jsonheader_bytes))
@@ -92,13 +90,13 @@ class Message:
                           self.request.get('action'),
                           self.request.get('request_content'))
 
-        response_body = {'response_content': request.process_request(), 'action': request.action}
+        response_body = {'response_content': request.process_request(), 'action': request.action,
+                         'status': request.get_status_code()}
         content_encoding = 'utf-8'
         response = {
             'content_bytes': self._json_encode(response_body, content_encoding),
             'content_type': "text/json",
             'content_encoding': content_encoding,
-            'status': request.get_status_code()
         }
         return response
 
@@ -111,8 +109,7 @@ class Message:
             'content_bytes': b"First 10 bytes of request: "
                              + self.request[:10],
             'content_type': 'binary/custom-server-binary-type',
-            'content_encoding': 'binary',
-            'status': request.get_status_code()
+            'content_encoding': 'binary'
         }
         return response
 

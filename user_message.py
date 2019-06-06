@@ -1,14 +1,15 @@
 import datetime
+import json
 from typing import Dict
 import time
 
 
 class UserMessage:
-    def __init__(self, sender, recipient, content: str):
+    def __init__(self, sender, recipient, content: str, timestamp=None):
         self.sender = sender
         self.recipient = recipient
         self.content = content
-        self.timestamp = None
+        self.timestamp = timestamp
 
     def set_timestamp(self):
         self.timestamp = time.time()
@@ -30,3 +31,10 @@ class UserMessage:
             return msg
         except KeyError:
             return None
+
+    def __repr__(self):
+        return json.dumps(self, default=lambda o: o.__dict__, indent=3)
+
+    @classmethod
+    def from_json(cls, arg):
+        return UserMessage(**arg)

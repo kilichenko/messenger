@@ -83,7 +83,8 @@ class Message:
         return message
 
     def _process_response_json_content(self):
-        rspns = response.Response(self.response.get('action'), self.response.get('response_content'))
+        rspns = response.Response(self.response.get('action'),
+                                  self.response.get('response_content'), self.response.get('status'))
         output = rspns.process_response()
         if output:
             print(output)
@@ -182,8 +183,7 @@ class Message:
                 "byteorder",
                 "content-length",
                 "content-type",
-                "content-encoding",
-                "status"
+                "content-encoding"
             ):
                 if reqhdr not in self.jsonheader:
                     raise ValueError(f'Missing required header "{reqhdr}".')

@@ -1,0 +1,4 @@
+{
+   "users": [],
+   "users_to_public_keys": {}
+}

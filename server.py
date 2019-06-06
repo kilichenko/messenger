@@ -2,6 +2,7 @@ import sys
 import socket
 import selectors
 import traceback
+import ssl
 
 from message import Message
 
@@ -45,7 +46,13 @@ class Server:
 
 
     def accept_wrapper(self, sock):
-        conn, addr = sock.accept()  # Should be ready to read
+        #context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+        #context.load_cert_chain(certfile="cert.pem")
+        #context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        #context.load_cert_chain('cert.pem')
+        #context.check_hostname = False
+        #ssock = context.wrap_socket(sock, server_side=True)
+        conn, addr = sock.accept()
         print("accepted connection from", addr)
         conn.setblocking(False)
         message = Message(self.sel, conn, addr)

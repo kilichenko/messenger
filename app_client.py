@@ -1,4 +1,5 @@
 import socket
+import ssl
 import selectors
 import traceback
 import libclient
@@ -21,7 +22,10 @@ class Client:
 
     def start_connection(self, host, port, request):
         addr = (host, port)
+        #context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+        #context.load_verify_locations('cert.pem')
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        #ssock = context.wrap_socket(sock, server_hostname=host)
         sock.setblocking(False)
         sock.connect_ex(addr)
         events = selectors.EVENT_READ | selectors.EVENT_WRITE

@@ -1,4 +1,3 @@
-import u2kht
 from user import User, Users
 from user_message import UserMessage
 import json
@@ -7,8 +6,8 @@ import json
 class Request:
     # expects content is username
     def _search(self, request_sender):
-        if self.content in u2kht.u2k:
-            self.response['key'] = u2kht.u2k[self.content]
+        if self.content in Users.get_users():
+            self.response['key'] = Users.get_public_key(self.content)
 
     # expects content is dict {content: str, sender: str, recipient: str}
     def _message(self, request_sender):
@@ -46,9 +45,19 @@ class Request:
                 msg_list.append(msg.as_dict())
         self.response['message_array'] = msg_list
 
-    # expects content is dict {login: str, password: str, public_key: str}
+    # expects content is dict {username: str, password: str, public_key: str, email: str}
     def _register(self, request_sender):
-        pass
+        username = self.content['username']
+        password = self.content['password']
+        public_key = self.content['public_key']
+        email = self.content['email']
+        if username in Users.get_users():
+            self.status = Request.status_codes['LOGIN_NOT_AVAILABLE']
+            return ''
+
+        usr = User(username=username, password=password, public_key=public_key, email=email)
+        for user in Users.get_users():
+            print(user.username)
 
     def _connect(self, request_sender):
         pass
@@ -56,7 +65,7 @@ class Request:
     def get_status_code(self) -> int:
         return self.status
 
-    status_codes = {'OK': 0, 'ERR': 1}
+    status_codes = {'OK': 0, 'ERR': 1, 'LOGIN_NON_AVAILABLE': 2, 'INVALID_ACTION': 3}
 
     def __init__(self, sender: str, action: str, content: dict):
         self.sender: str = sender
@@ -73,5 +82,9 @@ class Request:
                               'connect': self._connect}
 
     def process_request(self) -> str:
+        if self.action not in self.valid_actions:
+            self.status = Request.status_codes['INVALID_ACTION']
+            return ''
+
         self.valid_actions[self.action](Users.get_user(self.sender))
         return json.dumps(self.response)
