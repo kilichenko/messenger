@@ -51,7 +51,7 @@ class Request:
         password = self.content['password']
         public_key = self.content['public_key']
         email = self.content['email']
-        if username in Users.get_users():
+        if Users.user_exists(username):
             self.status = Request.status_codes['LOGIN_NOT_AVAILABLE']
             return ''
 
@@ -64,7 +64,7 @@ class Request:
     def get_status_code(self) -> int:
         return self.status
 
-    status_codes = {'OK': 0, 'ERR': 1, 'LOGIN_NON_AVAILABLE': 2, 'INVALID_ACTION': 3}
+    status_codes = {'OK': 0, 'ERR': 1, 'LOGIN_NOT_AVAILABLE': 2, 'INVALID_ACTION': 3}
 
     def __init__(self, sender: str, action: str, content: dict):
         self.sender: str = sender
