@@ -10,7 +10,7 @@ request_sender = 'gleb'
 def main():
     #send_msgs()
     client = Client()
-    content = {'username': 'anna', 'password': 'website', 'public_key': 'pkey', 'email': 'example@g.com'}
+    content = {'username': 'gleb', 'password': 'website', 'public_key': 'pkey', 'email': 'example@g.com'}
     client.run(action='register', request_content=content, request_sender=request_sender)
 
 

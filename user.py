@@ -95,10 +95,13 @@ class Users:
     def deserialize(cls, path: str = 'users.txt'):
         try:
             with open(path, 'r') as f:
-                Users.from_json(json.loads(f.read()))
-                print(Users.get_instance())
+                file_content = f.read()
+                if file_content != '':
+                    Users.from_json(json.loads(file_content))
         except FileNotFoundError:
             cls._instance = cls.__Users()
+        finally:
+            print(Users.get_instance())
 
     @classmethod
     def get_instance(cls):

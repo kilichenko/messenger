@@ -1,4 +1,15 @@
 {
-   "users": [],
-   "users_to_public_keys": {}
+   "users": [
+      {
+         "username": "gleb",
+         "password": "website",
+         "email": "example@g.com",
+         "public_key": "pkey",
+         "undelivered_messages": [],
+         "dialogs": {}
+      }
+   ],
+   "users_to_public_keys": {
+      "gleb": "pkey"
+   }
 }

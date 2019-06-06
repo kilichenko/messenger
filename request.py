@@ -5,19 +5,19 @@ import json
 
 class Request:
     # expects content is username
-    def _search(self, request_sender):
+    def _search(self):
         if self.content in Users.get_users():
             self.response['key'] = Users.get_public_key(self.content)
 
     # expects content is dict {content: str, sender: str, recipient: str}
-    def _message(self, request_sender):
+    def _message(self):
         message = UserMessage.parse_from_dict(self.content)
         message_recipient = Users.get_user(message.recipient)
         message_recipient.add_undelivered_message(message)
         message_recipient.add_msg_to_dialog(message.sender, message)
 
     # expects content is dict {message_array: [{content: str, sender: str, recipient: str}]}
-    def _save(self, request_sender):
+    def _save(self):
         request_content = json.loads(self.content)
         if request_content['response_content']['message_array']:
             for msg in request_content['response_content']['message_array']:
@@ -27,9 +27,9 @@ class Request:
 
     # expects empty content
     # returns {response_content: {message_array: [{content: str, sender: str, recipient: str}]}}
-    def _getnewmsgs(self, request_sender):
+    def _getnewmsgs(self):
         msg_list = []
-        msgs = request_sender.get_undelivered_messages()
+        msgs = Users.get_user(self.sender).get_undelivered_messages()
         while len(msgs) != 0:
             msg = msgs.pop()
             msg_list.append(msg.as_dict())
@@ -37,16 +37,16 @@ class Request:
 
     # expects empty content
     # returns {response_content: {message_array: [{content: str, sender: str, recipient: str}]}}
-    def _getallmsgs(self, request_sender):
+    def _getallmsgs(self):
         msg_list = []
-        dialogs = request_sender.get_all_dialogs()
+        dialogs = Users.get_user(self.sender).get_all_dialogs()
         for k, v in dialogs.items():
             for msg in v.get_messages():
                 msg_list.append(msg.as_dict())
         self.response['message_array'] = msg_list
 
     # expects content is dict {username: str, password: str, public_key: str, email: str}
-    def _register(self, request_sender):
+    def _register(self):
         username = self.content['username']
         password = self.content['password']
         public_key = self.content['public_key']
@@ -56,8 +56,7 @@ class Request:
             return ''
 
         usr = User(username=username, password=password, public_key=public_key, email=email)
-        for user in Users.get_users():
-            print(user.username)
+        Users.add_user(usr)
 
     def _connect(self, request_sender):
         pass
@@ -86,5 +85,5 @@ class Request:
             self.status = Request.status_codes['INVALID_ACTION']
             return ''
 
-        self.valid_actions[self.action](Users.get_user(self.sender))
+        self.valid_actions[self.action]()
         return json.dumps(self.response)
