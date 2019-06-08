@@ -16,21 +16,39 @@ from Crypto.PublicKey import RSA
 from typing import Tuple
 
 
+
 class Encryptor:
     @staticmethod
     def hash_message(message: bytes) -> bytes:
         return hashlib.sha256(message).hexdigest().encode()
 
     @staticmethod
-    def asymmetric_encrypt_message(message: bytes, key):
-        cipher = PKCS1_OAEP.new(key=key)
-        encrypted = cipher.encrypt(message)
+    def asymmetric_encrypt_message(key, message: bytes):
+        #cipher = PKCS1_OAEP.new(key=key)
+        #encrypted = cipher.encrypt(message)
+        encrypted = key.encrypt(
+            message,
+            padding.OAEP(
+                mgf=padding.MGF1(algorithm=hashes.SHA256()),
+                algorithm=hashes.SHA256(),
+                label=None
+            )
+        )
         return encrypted
 
     @staticmethod
-    def asymmetric_decrypt_message(enscrypted_message: bytes, key):
-        decrypt = PKCS1_OAEP.new(key=key)
-        return decrypt.decrypt(enscrypted_message)
+    def asymmetric_decrypt_message(key, message: bytes, ):
+        #decrypt = PKCS1_OAEP.new(key=key)
+        #decrypt.decrypt(enscrypted_message)
+        original_message = key.decrypt(
+            message,
+            padding.OAEP(
+                mgf=padding.MGF1(algorithm=hashes.SHA256()),
+                algorithm=hashes.SHA256(),
+                label=None
+            )
+        )
+        return original_message
 
     @staticmethod
     def generate_keys(key_size=2048) -> Tuple:
@@ -71,6 +89,11 @@ class Encryptor:
         return public_key
 
     @staticmethod
+    def load_public_key_as_bytes(location: str = '', file_name: str = 'public_key') -> bytes:
+        with open(location + file_name + '.pem', "rb") as key_file:
+            return key_file.read()
+
+    @staticmethod
     def generate_symmetric_key():
         return Fernet.generate_key()
 
@@ -86,7 +109,7 @@ class Encryptor:
 
     @staticmethod
     def save_symmetrical_key(key: bytes, location: str = '', file_name: str = 'symmetric_key'):
-        with open(location + file_name + 'key', 'wb') as f:
+        with open(location + file_name + '.key', 'wb') as f:
             f.write(key)
 
     @staticmethod
@@ -104,7 +127,11 @@ class Encryptor:
             iterations=100000,
             backend=default_backend()
         )
-        key = base64.urlsafe_b64encode(kdf.derive(seed))  # Can only use kdf once
+        return base64.urlsafe_b64encode(kdf.derive(seed))  # Can only use kdf once
+
+    @staticmethod
+    def get_next_symmetrical_key(key: bytes):
+        return Encryptor.generate_symmetrical_key_from_seed(Encryptor.hash_message(key))
 
     @staticmethod
     def create_signature(private_key, message: bytes) -> bytes:
@@ -131,3 +158,10 @@ class Encryptor:
             return True
         except InvalidSignature:
             return False
+
+
+#pubk1, prkey1 = Encryptor.generate_keys()
+#print(type(pubk1))
+#pubk2 = Encryptor.load_public_key(file_name='gleb_public_key')
+#prk2 = Encryptor.load_private_key(file_name='gleb_private_key')
+#print(type(pubk2))

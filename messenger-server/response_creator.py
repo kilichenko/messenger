@@ -1,22 +1,28 @@
+import base64
+
+from encrytor import Encryptor
+from server_session import ServerSession
 from user import User, Users
 from user_message import UserMessage
 import json
 
 
-class Request:
-    # expects content is username
+class ResponseCreator:
+    # expects content is {username: str}
     def _search(self):
-        if self.content in Users.get_users():
-            self.response['key'] = Users.get_public_key(self.content)
+        if self.content['username'] in Users.get_users():
+            self.response['key'] = Users.get_public_key(self.content['username'])
+        else:
+            self.status = ResponseCreator.status_codes['USER_DO_NOT_EXIST']
 
-    # expects content is dict {content: str, sender: str, recipient: str}
+    # expects content is {content: str, sender: str, recipient: str}
     def _message(self):
         message = UserMessage.parse_from_dict(self.content)
         message_recipient = Users.get_user(message.recipient)
         message_recipient.add_undelivered_message(message)
         message_recipient.add_msg_to_dialog(message.sender, message)
 
-    # expects content is dict {message_array: [{content: str, sender: str, recipient: str}]}
+    # expects content is {message_array: [{content: str, sender: str, recipient: str}]}
     def _save(self):
         request_content = json.loads(self.content)
         if request_content['response_content']['message_array']:
@@ -45,44 +51,69 @@ class Request:
                 msg_list.append(msg.as_dict())
         self.response['message_array'] = msg_list
 
-    # expects content is dict {username: str, password: str, public_key: str, email: str}
+    # expects content is {username: str, password: str, public_key: str, email: str}
     def _register(self):
         username = self.content['username']
+        if Users.user_exists(username):
+            self.status = ResponseCreator.status_codes['LOGIN_NOT_AVAILABLE']
+            return
         password = self.content['password']
         public_key = self.content['public_key']
         email = self.content['email']
-        if Users.user_exists(username):
-            self.status = Request.status_codes['LOGIN_NOT_AVAILABLE']
-            return ''
-
         usr = User(username=username, password=password, public_key=public_key, email=email)
         Users.add_user(usr)
 
-    def _connect(self, request_sender):
+    # block a user
+    # expects {username: str}
+    def _block(self, request_sender):
         pass
+
+    # expects content is {username: str, password: str}
+    # returns {key: str}
+    def _authenticate(self):
+        if self.content['username'] not in Users.get_users():
+            self.status = ResponseCreator.status_codes['USER_DO_NOT_EXIST']
+            return
+        user = Users.get_user(self.content['username'])
+        if user.check_password(self.content['password']):
+            key = Encryptor.generate_symmetric_key()
+            ServerSession.add_client_session_key(user.get_username(), key)
+            encrypted_key = Encryptor.symmetrical_encrypt(user.get_public_key(), key)
+            self.response = {'key': encrypted_key}
+        else:
+            self.status = ResponseCreator.status_codes['WRONG_PASSWORD']
 
     def get_status_code(self) -> int:
         return self.status
 
-    status_codes = {'OK': 0, 'ERR': 1, 'LOGIN_NOT_AVAILABLE': 2, 'INVALID_ACTION': 3}
+    status_codes = {'OK': 0, 'ERR': 1, 'LOGIN_NOT_AVAILABLE': 2, 'INVALID_ACTION': 3, 'WRONG_PASSWORD': 4,
+                    'USER_DO_NOT_EXIST': 5}
 
     def __init__(self, sender: str, action: str, content: dict):
         self.sender: str = sender
         self.action: str = action
         self.content: dict = content
-        self.status: int = Request.status_codes.get('OK')
+        self.status: int = ResponseCreator.status_codes.get('OK')
         self.response = {}
         self.valid_actions = {'search': self._search,
                               'message': self._message,
-                              'save': self._save,
                               'getnewmsgs': self._getnewmsgs,
                               'getallmsgs': self._getallmsgs,
                               'register': self._register,
-                              'connect': self._connect}
+                              'authenticate': self._authenticate,
+                              'block': self._block}
 
     def process_request(self) -> str:
+        message = UserMessage.parse_from_dict(self.content)
+        pr_k = Encryptor.load_private_key()
+        coded = message.content
+        print(coded)
+        decoded = base64.b64decode(self.content['content'])
+        print(type(decoded), decoded)
+        print(Encryptor.asymmetric_decrypt_message(key=pr_k, message=decoded))
+
         if self.action not in self.valid_actions:
-            self.status = Request.status_codes['INVALID_ACTION']
+            self.status = ResponseCreator.status_codes['INVALID_ACTION']
             return ''
 
         self.valid_actions[self.action]()

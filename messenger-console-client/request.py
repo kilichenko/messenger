@@ -2,7 +2,7 @@ import socket
 import ssl
 import selectors
 import traceback
-import libclient
+import request_sender
 from typing import Dict
 
 
@@ -53,7 +53,7 @@ class Request:
         sock.setblocking(False)
         sock.connect_ex(addr)
         events = selectors.EVENT_READ | selectors.EVENT_WRITE
-        message = libclient.Message(self.sel, sock, addr, self._create_request())
+        message = request_sender.RequestSender(self.sel, sock, addr, self._create_request())
         self.sel.register(sock, events, data=message)
 
 

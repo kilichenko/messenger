@@ -4,7 +4,7 @@ import selectors
 import traceback
 import ssl
 
-from message import Message
+from request_handler import RequestHandler
 
 class Server:
 
@@ -55,5 +55,5 @@ class Server:
         conn, addr = sock.accept()
         print("accepted connection from", addr)
         conn.setblocking(False)
-        message = Message(self.sel, conn, addr)
+        message = RequestHandler(self.sel, conn, addr)
         self.sel.register(conn, selectors.EVENT_READ, data=message)

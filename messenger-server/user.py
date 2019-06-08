@@ -1,5 +1,7 @@
 import json
 from typing import List, Dict
+
+from encrytor import Encryptor
 from user_message import UserMessage
 from dialog import Dialog
 
@@ -8,7 +10,7 @@ class User:
     def __init__(self, username, password, public_key, email: str = '',
                  undelivered_messages: List[UserMessage] = None, dialogs: Dict[str, Dialog] = None):
         self.username: str = username
-        self.password: str = password
+        self.password: str = Encryptor.hash_message(password.encode()).decode()
         self.email: str = email
         self.public_key = public_key
         if undelivered_messages is None:
@@ -20,6 +22,15 @@ class User:
         else:
             self.dialogs = dialogs
         # Users.add_user(self)
+
+    def get_username(self):
+        return self.username
+
+    def get_public_key(self):
+        return self.public_key
+
+    def check_password(self, password: str) -> bool:
+        return Encryptor.hash_message(password.encode()) == self.password.encode()
 
     def add_undelivered_message(self, message: UserMessage):
         if isinstance(message, UserMessage):

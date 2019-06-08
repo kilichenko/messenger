@@ -1,3 +1,5 @@
+import base64
+
 from encrytor import Encryptor
 from server import Server
 from user import Users
@@ -32,17 +34,31 @@ def test_hash_time():
     print("10M hashes time: " + str(end - start))
 
 
+def generate_new_keys():
+    pub_key, pr_key = Encryptor.generate_keys()
+    Encryptor.save_public_key(pub_key)
+    Encryptor.save_private_key(pr_key)
+
 
 def main():
-    #server_pub_key = Encryptor.load_private_key('test_public_key.pem')
-    #server_pr_key = Encryptor.load_private_key('test_private_key.pem')
-    #Users.deserialize()
-    #server = Server('192.168.1.40', 65000)
-    #server.run()
-    #Users.serialize()
+    Users.deserialize()
+    server = Server('192.168.1.40', 65000)
+    server.run()
+    Users.serialize()
+
+    # pr_k = Encryptor.load_private_key()
+    # pub_k = Encryptor.load_public_key()
+    # encrypted = Encryptor.asymmetric_encrypt_message(message=b'fuck it', key=pub_k)
+    # print(encrypted)
+    # coded = base64.b64encode(encrypted).decode('utf-8')
+    # decoded = base64.b64decode(coded)
+    # decrypted = Encryptor.asymmetric_decrypt_message(message=decoded, key=pr_k)
+    # print(decrypted)
+
     # test_encryption_time()
     # test_hash_time()
     pass
+
 
 if __name__ == "__main__":
     main()
