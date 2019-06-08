@@ -7,76 +7,52 @@ from cryptography.hazmat.primitives import serialization, hashes
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.backends import default_backend
 from cryptography.fernet import Fernet
-
-from typing import Tuple
-
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+
+# Crypto is used for generation and saving keys because of the issue with loading keys from a file
+# after saving those generated with cryptography
+from Crypto.Cipher import PKCS1_OAEP
+from Crypto.PublicKey import RSA
+from typing import Tuple
 
 
 class Encryptor:
-    def __init__(self):
-        self._sender_public_key = None
-        self._sender_private_key = None
-        self._server_public_key = None
+    @staticmethod
+    def hash_message(message: bytes) -> bytes:
+        return hashlib.sha256(message).hexdigest().encode()
 
     @staticmethod
     def asymmetric_encrypt_message(message: bytes, key):
-        encrypted = key.encrypt(
-            message,
-            padding.OAEP(
-                mgf=padding.MGF1(algorithm=hashes.SHA256()),
-                algorithm=hashes.SHA256(),
-                label=None
-            )
-        )
+        cipher = PKCS1_OAEP.new(key=key)
+        encrypted = cipher.encrypt(message)
         return encrypted
 
     @staticmethod
     def asymmetric_decrypt_message(enscrypted_message: bytes, key):
-        original_message = key.decrypt(
-            enscrypted_message,
-            padding.OAEP(
-                mgf=padding.MGF1(algorithm=hashes.SHA256()),
-                algorithm=hashes.SHA256(),
-                label=None
-            )
-        )
-        return original_message
+        decrypt = PKCS1_OAEP.new(key=key)
+        return decrypt.decrypt(enscrypted_message)
 
     @staticmethod
-    def generate_keys(public_exponent=65537, key_size=2048, backend=default_backend) -> Tuple:
-        private_key = rsa.generate_private_key(
-            public_exponent=65537,
-            key_size=4096,
-            backend=backend()
-        )
-        public_key = private_key.public_key()
-        return public_key, private_key
+    def generate_keys(key_size=2048) -> Tuple:
+        private_key = RSA.generate(key_size)
+        return private_key.publickey(), private_key
 
     @staticmethod
-    def save_private_key(private_key, location: str = 'test_private_key.pem'):
-        pem = private_key.private_bytes(
-            encoding=serialization.Encoding.PEM,
-            format=serialization.PrivateFormat.PKCS8,
-            encryption_algorithm=serialization.NoEncryption()
-        )
-
-        with open(location, 'wb') as f:
-            f.write(pem)
+    def save_private_key(private_key, location: str = '', file_name: str = 'private_key'):
+        private_pem = private_key.export_key().decode()
+        with open(location + file_name + '.pem', 'w') as pr:
+            pr.write(private_pem)
 
     @staticmethod
-    def save_public_key(public_key, location: str = 'test_public_key.pem'):
-        pem = public_key.public_bytes(
-            encoding=serialization.Encoding.PEM,
-            format=serialization.PublicFormat.SubjectPublicKeyInfo
-        )
-
-        with open(location, 'wb') as f:
-            f.write(pem)
+    def save_public_key(public_key, location: str = '', file_name: str = 'public_key'):
+        public_pem = public_key.export_key().decode()
+        with open(location + file_name + '.pem', 'w') as pr:
+            pr.write(public_pem)
 
     @staticmethod
-    def load_private_key(location: str = 'test_private_key.pem'):
-        with open(location, "rb") as key_file:
+    def load_private_key(location: str = '', file_name: str = 'private_key'):
+        # return RSA.import_key(open(location + file_name + '.pem', 'r').read())
+        with open(location + file_name + '.pem', "rb") as key_file:
             private_key = serialization.load_pem_private_key(
                 key_file.read(),
                 password=None,
@@ -85,15 +61,19 @@ class Encryptor:
         return private_key
 
     @staticmethod
-    def load_public_key(location: str = 'test_public_key.pem'):
-        with open(location, "rb") as key_file:
+    def load_public_key(location: str = '', file_name: str = 'public_key'):
+        # return RSA.import_key(open(location + file_name + '.pem', 'r').read())
+        with open(location + file_name + '.pem', "rb") as key_file:
             public_key = serialization.load_pem_public_key(
                 key_file.read(),
                 backend=default_backend()
             )
         return public_key
 
-    #key = Fernet.generate_key()
+    @staticmethod
+    def generate_symmetric_key():
+        return Fernet.generate_key()
+
     @staticmethod
     def symmetrical_encrypt(key: bytes, message: bytes):
         f = Fernet(key)
@@ -105,16 +85,14 @@ class Encryptor:
         return f.decrypt(message)
 
     @staticmethod
-    def save_symmetrical_key(key: bytes):
-        file = open('key.key', 'wb')
-        file.write(key)
-        file.close()
+    def save_symmetrical_key(key: bytes, location: str = '', file_name: str = 'symmetric_key'):
+        with open(location + file_name + 'key', 'wb') as f:
+            f.write(key)
 
     @staticmethod
-    def load_symmetrical_key(key: bytes):
-        file = open('key.key', 'rb')
-        key = file.read(key)  # The key will be type bytes
-        file.close()
+    def load_symmetrical_key(location: str = '', file_name: str = 'symmetric_key'):
+        with open(location + file_name + 'key', 'rb') as f:
+            return f.read()  # The key will be type bytes
 
     @staticmethod
     def generate_symmetrical_key_from_seed(seed: bytes):
@@ -130,7 +108,7 @@ class Encryptor:
 
     @staticmethod
     def create_signature(private_key, message: bytes) -> bytes:
-        hashed_msg = hashlib.sha256(message).hexdigest().encode()
+        hashed_msg = Encryptor.hash_message(message)
         signature = private_key.sign(
             hashed_msg,
             padding.PSS(
@@ -141,7 +119,7 @@ class Encryptor:
 
     @staticmethod
     def signature_is_valid(signature, public_key, message: bytes) -> bool:
-        hashed_msg = hashlib.sha256(message).hexdigest().encode()
+        hashed_msg = Encryptor.hash_message(message)
         try:
             public_key.verify(
                 signature,
@@ -153,9 +131,3 @@ class Encryptor:
             return True
         except InvalidSignature:
             return False
-
-
-#print(base64.b64encode(sig))
-#decoded_sig = base64.b64decode(sig)
-
-

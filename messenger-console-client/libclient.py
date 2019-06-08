@@ -145,18 +145,18 @@ class Message:
             self.sock = None
 
     def queue_request(self):
-        request_content = self.request["request_body"]
+        request_body = self.request["request_body"]
         content_type = self.request["type"]
         content_encoding = self.request["encoding"]
         if content_type == "text/json":
             req = {
-                "content_bytes": self._json_encode(request_content, content_encoding),
+                "content_bytes": self._json_encode(request_body, content_encoding),
                 "content_type": content_type,
                 "content_encoding": content_encoding,
             }
         else:
             req = {
-                "content_bytes": request_content,
+                "content_bytes": request_body,
                 "content_type": content_type,
                 "content_encoding": content_encoding,
             }

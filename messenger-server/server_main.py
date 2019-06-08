@@ -32,15 +32,17 @@ def test_hash_time():
     print("10M hashes time: " + str(end - start))
 
 
-def main():
-    Users.deserialize()
-    server = Server('192.168.1.40', 65000)
-    server.run()
-    Users.serialize()
 
+def main():
+    #server_pub_key = Encryptor.load_private_key('test_public_key.pem')
+    #server_pr_key = Encryptor.load_private_key('test_private_key.pem')
+    #Users.deserialize()
+    #server = Server('192.168.1.40', 65000)
+    #server.run()
+    #Users.serialize()
     # test_encryption_time()
     # test_hash_time()
-
+    pass
 
 if __name__ == "__main__":
     main()

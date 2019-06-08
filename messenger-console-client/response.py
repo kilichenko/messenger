@@ -10,7 +10,7 @@ class Response:
         self.action: str = action
         self.content: str = content
         self.response_status: int = response_status
-        self.client: app_client.Client = app_client.Client()
+        self.client: app_client.Request = app_client.Request()
 
     def process_response(self) -> str:
         result = ''
@@ -27,8 +27,8 @@ class Response:
         elif self.action == 'getnewmsgs':
             content = json.loads(self.content)
             if content['message_array']:
-                self.client.run(action='save', request_content=self.content,
-                                request_sender='gleb')
+                self.client.send_request(action='save', request_content=self.content,
+                                         request_sender='gleb')
                 for msg in content['message_array']:
                     result += msg.get('sender') + ': ' + msg.get('content') + '\n'
         elif self.action == 'register':

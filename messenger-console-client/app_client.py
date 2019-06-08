@@ -5,37 +5,17 @@ import traceback
 import libclient
 from typing import Dict
 
-class Client:
-    def __init__(self, host='192.168.1.40', port=65000):
+
+class Request:
+    def __init__(self, action, request_sender, host='192.168.1.40', port=65000, request_content=None):
         self.sel = selectors.DefaultSelector()
         self.host, self.port = host, port
+        self.action = action
+        self.request_sender = request_sender
+        self.request_content = request_content
 
-
-    @staticmethod
-    def create_request(action, request_sender, request_content) -> Dict:
-        if action in ('search', 'message', 'save', 'getnewmsgs', 'getallmsgs', 'register'):
-            return {'type': "text/json", 'encoding': "utf-8",
-                    'request_body': {'action': action, 'request_content': request_content, 'request_sender': request_sender}}
-        else:
-            return {'type': "binary/custom-client-binary-type", 'encoding': "binary",
-                    'request_body': bytes(action + request_content, encoding="utf-8")}
-
-    def start_connection(self, host, port, request):
-        addr = (host, port)
-        #context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
-        #context.load_verify_locations('cert.pem')
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        #ssock = context.wrap_socket(sock, server_hostname=host)
-        sock.setblocking(False)
-        sock.connect_ex(addr)
-        events = selectors.EVENT_READ | selectors.EVENT_WRITE
-        message = libclient.Message(self.sel, sock, addr, request)
-        self.sel.register(sock, events, data=message)
-
-    def run(self, action, request_sender, request_content=None):
-        request = self.create_request(action=action, request_content=request_content,
-                                      request_sender=request_sender)
-        self.start_connection(self.host, self.port, request)
+    def send_request(self):
+        self._start_connection()
 
         try:
             while True:
@@ -57,3 +37,23 @@ class Client:
             print("caught keyboard interrupt, exiting")
         finally:
             self.sel.close()
+
+    def _create_request(self) -> Dict:
+        if self.action in ('search', 'message', 'save', 'getnewmsgs', 'getallmsgs', 'register'):
+            return {'type': "text/json", 'encoding': "utf-8",
+                    'request_body': {'action': self.action, 'request_content': self.request_content,
+                                     'request_sender': self.request_sender}}
+        else:
+            return {'type': "binary/custom-client-binary-type", 'encoding': "binary",
+                    'request_body': bytes(self.action + self.request_content, encoding="utf-8")}
+
+    def _start_connection(self):
+        addr = (self.host, self.port)
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.setblocking(False)
+        sock.connect_ex(addr)
+        events = selectors.EVENT_READ | selectors.EVENT_WRITE
+        message = libclient.Message(self.sel, sock, addr, self._create_request())
+        self.sel.register(sock, events, data=message)
+
+

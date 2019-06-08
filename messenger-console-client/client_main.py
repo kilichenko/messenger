@@ -1,32 +1,37 @@
 import json
 
-from encryptor import Enscryptor
-from app_client import Client
+from encryptor import Encryptor
+from app_client import Request
 import user
 
 request_sender = 'gleb'
 
 
 def main():
+    server_pub_key = Encryptor.load_public_key('public_key.pem')
+
+    #ivan_pub_key, ivan_pr_key = Encryptor.generate_keys()
+    #Encryptor.save_private_key(ivan_pr_key, 'ivan_private_key.pem')
+    #Encryptor.save_public_key(ivan_pr_key, 'ivan_public_key.pem')
+
     #send_msgs()
-    client = Client()
-    content = {'username': 'gleb', 'password': 'website', 'public_key': 'pkey', 'email': 'example@g.com'}
-    client.run(action='register', request_content=content, request_sender=request_sender)
+    #content = {'username': 'gleb', 'password': 'website', 'public_key': 'pkey', 'email': 'example@g.com'}
+    #request = Request(action='register', request_content=content, request_sender=request_sender)
+    #request.send_request()
+
 
 
 def send_msgs():
     inpt = ''
-    #enscr = Enscryptor()
-    pub_key, pr_key = Enscryptor.generate_keys()
+    server_pub_key = Encryptor.load_public_key('public_key.pem')
+
     while inpt != 'q':
         inpt = input('Input message: ')
-        msg = user.UserMessage(sender='gleb', recipient='ivan', content=inpt)
-        client = Client()
-        msg = Enscryptor.simple_encrypt_message(json.dumps(msg.as_dict()))
-        client.run(action='message', request_content=msg.as_dict(), request_sender=request_sender)
+        request = Request(action='message', request_content={}, request_sender=request_sender)
+        request.send_request()
 
-        client = Client()
-        client.run(action='getnewmsgs', request_sender=request_sender)
+        request = Request(action='getnewmsgs', request_sender=request_sender)
+        request.send_request()
 
 if __name__ == "__main__":
     main()
