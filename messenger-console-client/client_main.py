@@ -1,6 +1,6 @@
 import json
 
-from enscrytor import Enscryptor
+from encryptor import Enscryptor
 from app_client import Client
 import user
 
