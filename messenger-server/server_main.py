@@ -2,7 +2,7 @@ import base64
 
 from encrytor import Encryptor
 from server import Server
-from user import Users
+from user import Users, UsersToPublicKeys
 from timeit import default_timer as timer
 import hashlib
 
@@ -42,18 +42,9 @@ def generate_new_keys():
 
 def main():
     Users.deserialize()
-    server = Server('192.168.1.40', 65000)
+    server = Server('192.168.1.42', 65000)
     server.run()
     Users.serialize()
-
-    # pr_k = Encryptor.load_private_key()
-    # pub_k = Encryptor.load_public_key()
-    # encrypted = Encryptor.asymmetric_encrypt_message(message=b'fuck it', key=pub_k)
-    # print(encrypted)
-    # coded = base64.b64encode(encrypted).decode('utf-8')
-    # decoded = base64.b64decode(coded)
-    # decrypted = Encryptor.asymmetric_decrypt_message(message=decoded, key=pr_k)
-    # print(decrypted)
 
     # test_encryption_time()
     # test_hash_time()

@@ -1,8 +1,10 @@
 import base64
 
+from cryptography.hazmat.primitives import serialization
+
 from encrytor import Encryptor
 from server_session import ServerSession
-from user import User, Users
+from user import User, Users, UsersToPublicKeys
 from user_message import UserMessage
 import json
 
@@ -17,10 +19,18 @@ class ResponseCreator:
 
     # expects content is {content: str, sender: str, recipient: str}
     def _message(self):
+        key = ServerSession.get_client_session_key(username=self.content['sender'])
+        decrypted = Encryptor.symmetrical_decrypt(
+            key=key,
+            message=self.content['content']
+        )
+        print(decrypted)
         message = UserMessage.parse_from_dict(self.content)
-        message_recipient = Users.get_user(message.recipient)
-        message_recipient.add_undelivered_message(message)
-        message_recipient.add_msg_to_dialog(message.sender, message)
+        try:
+            message_recipient = Users.get_user(message.recipient)
+            message_recipient.add_undelivered_message(message)
+        except KeyError:
+            self.status = ResponseCreator.status_codes['USER_DO_NOT_EXIST']
 
     # expects content is {message_array: [{content: str, sender: str, recipient: str}]}
     def _save(self):
@@ -60,8 +70,10 @@ class ResponseCreator:
         password = self.content['password']
         public_key = self.content['public_key']
         email = self.content['email']
-        usr = User(username=username, password=password, public_key=public_key, email=email)
+        usr = User(username=username,
+                   password=Encryptor.hash_message(password.encode()).decode(), email=email)
         Users.add_user(usr)
+        UsersToPublicKeys.add_user_public_key(username, public_key)
 
     # block a user
     # expects {username: str}
@@ -71,14 +83,18 @@ class ResponseCreator:
     # expects content is {username: str, password: str}
     # returns {key: str}
     def _authenticate(self):
-        if self.content['username'] not in Users.get_users():
+        username = self.content['username']
+        if not Users.user_exists(username):
             self.status = ResponseCreator.status_codes['USER_DO_NOT_EXIST']
             return
-        user = Users.get_user(self.content['username'])
-        if user.check_password(self.content['password']):
+        user = Users.get_user(username)
+        password = Encryptor.asymmetric_decrypt_message(key=ServerSession.get_private_key(),
+                                                        message=self.content['password'])
+        if user.check_password(password):
             key = Encryptor.generate_symmetric_key()
             ServerSession.add_client_session_key(user.get_username(), key)
-            encrypted_key = Encryptor.symmetrical_encrypt(user.get_public_key(), key)
+            pub_k = UsersToPublicKeys.get_public_key(username)
+            encrypted_key = Encryptor.asymmetric_encrypt_message(key=pub_k, message=key)
             self.response = {'key': encrypted_key}
         else:
             self.status = ResponseCreator.status_codes['WRONG_PASSWORD']
@@ -104,14 +120,6 @@ class ResponseCreator:
                               'block': self._block}
 
     def process_request(self) -> str:
-        message = UserMessage.parse_from_dict(self.content)
-        pr_k = Encryptor.load_private_key()
-        coded = message.content
-        print(coded)
-        decoded = base64.b64decode(self.content['content'])
-        print(type(decoded), decoded)
-        print(Encryptor.asymmetric_decrypt_message(key=pr_k, message=decoded))
-
         if self.action not in self.valid_actions:
             self.status = ResponseCreator.status_codes['INVALID_ACTION']
             return ''
