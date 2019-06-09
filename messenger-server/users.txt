@@ -14,31 +14,7 @@
             {
                "sender": "gleb",
                "recipient": "ivan",
-               "content": "gAAAAABc_RNwhcOWTZrQzQoUtXLKWxpsubS9QnH4R4c6DYg_d9f1b-aIbhrbtB6PnYZGTGJqF2-6Ibd0ONXLGC3UWNSWkjFrBQ==",
-               "timestamp": null
-            },
-            {
-               "sender": "gleb",
-               "recipient": "ivan",
-               "content": "gAAAAABc_ROJi_lqlpSwI3gCpRR7EyGBD8_iKOgmBhz1aMdij-82Hb0RER5b2eB5J5hyowZCmMweVu_1Mcq_QjvmD2tED8yLnQ==",
-               "timestamp": null
-            },
-            {
-               "sender": "gleb",
-               "recipient": "ivan",
-               "content": "gAAAAABc_ROXzuUVjrsoMV0BH1c_Bx_cXs-JBFmJUI8lkGyGrbwT3IVqzxnOZUDTYSlVtcvu065X9CygwdSSoHSWriNX39HjYA==",
-               "timestamp": null
-            },
-            {
-               "sender": "gleb",
-               "recipient": "ivan",
-               "content": "gAAAAABc_RX607t73JsQh6dn9pbbXUGrGc7LqyobHQe_nAsbQKbZZ48AaN3KPKxBD6FfotThE8ZLOwJkGNFa7RTHy3xNEYPH-A==",
-               "timestamp": null
-            },
-            {
-               "sender": "gleb",
-               "recipient": "ivan",
-               "content": "gAAAAABc_RYXwJzUENEyhWjP6B4MOJlrHu1uOUaFr7hFb3n8w9rY90lU7RHpadByG8BBTJU0sX0wO5_O3Cl35kc7Tfe9wHkjIA==",
+               "content": "stupid text",
                "timestamp": null
             }
          ]

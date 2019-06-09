@@ -24,8 +24,10 @@ class ResponseCreator:
             key=key,
             message=self.content['content']
         )
-        print(decrypted)
-        message = UserMessage.parse_from_dict(self.content)
+        message = UserMessage(recipient=self.content['recipient'],
+                              sender=self.content['sender'],
+                              content=decrypted)
+        message.set_timestamp()
         try:
             message_recipient = Users.get_user(message.recipient)
             message_recipient.add_undelivered_message(message)
@@ -105,10 +107,15 @@ class ResponseCreator:
     status_codes = {'OK': 0, 'ERR': 1, 'LOGIN_NOT_AVAILABLE': 2, 'INVALID_ACTION': 3, 'WRONG_PASSWORD': 4,
                     'USER_DO_NOT_EXIST': 5}
 
-    def __init__(self, sender: str, action: str, content: dict):
+    def __init__(self, sender: str, action: str, content):
         self.sender: str = sender
         self.action: str = action
-        self.content: dict = content
+        if self.action not in ['authenticate', 'register']:
+            key = ServerSession.get_client_session_key(sender)
+            self.content = Encryptor.symmetrical_decrypt(key=key, message=content)
+            self.content = json.loads(self.content)
+        else:
+            self.content: dict = content
         self.status: int = ResponseCreator.status_codes.get('OK')
         self.response = {}
         self.valid_actions = {'search': self._search,
