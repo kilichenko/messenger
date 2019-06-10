@@ -3,7 +3,6 @@ from typing import List, Dict
 
 from encrytor import Encryptor
 from user_message import UserMessage
-from dialog import Dialog
 
 
 class User:
@@ -39,9 +38,6 @@ class User:
 
     @classmethod
     def from_json(cls, arg):
-        # dialogs = {}
-        # for k, v in arg['dialogs'].items():
-        #    dialogs[k] = Dialog(messages=list(map(UserMessage.from_json, v["messages"])))
         return User(username=arg['username'], password=arg['password'], email=arg['email'],
                     undelivered_messages=list(map(UserMessage.from_json, arg["undelivered_messages"])))
 
@@ -114,7 +110,7 @@ class Users:
 
     _instance: __Users = None
 
-    def __init__(self, users: List[User] = None, ):
+    def __init__(self, users: List[User] = None):
         Users._instance = Users.__Users(users)
 
     @classmethod

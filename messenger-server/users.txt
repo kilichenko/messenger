@@ -10,14 +10,7 @@
          "username": "ivan",
          "password": "cd0b9452fc376fc4c35a60087b366f70d883fc901524daf1f122fbd319384f6a",
          "email": "mail.@gmail.com",
-         "undelivered_messages": [
-            {
-               "sender": "gleb",
-               "recipient": "ivan",
-               "content": "stupid text",
-               "timestamp": null
-            }
-         ]
+         "undelivered_messages": []
       }
    ]
 }

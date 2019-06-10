@@ -6,6 +6,7 @@ import ssl
 
 from request_handler import RequestHandler
 
+
 class Server:
 
     def __init__(self, host, port):
@@ -44,14 +45,7 @@ class Server:
         finally:
             self.sel.close()
 
-
     def accept_wrapper(self, sock):
-        #context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
-        #context.load_cert_chain(certfile="cert.pem")
-        #context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-        #context.load_cert_chain('cert.pem')
-        #context.check_hostname = False
-        #ssock = context.wrap_socket(sock, server_side=True)
         conn, addr = sock.accept()
         print("accepted connection from", addr)
         conn.setblocking(False)

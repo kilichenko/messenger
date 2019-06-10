@@ -36,3 +36,7 @@ class ServerSession:
     @classmethod
     def get_public_key(cls):
         return cls.get_instance().server_public_key
+
+    @classmethod
+    def session_established(cls, username):
+        return username in cls.get_instance().clients_to_session_keys

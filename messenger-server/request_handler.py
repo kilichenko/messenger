@@ -90,7 +90,7 @@ class RequestHandler:
                                   self.request.get('action'),
                                   self.request.get('request_content'))
 
-        response_body = {'response_content': request.process_request(), 'action': request.action,
+        response_body = {'response_content': json.dumps(request.process_request()), 'action': request.action,
                          'status': request.get_status_code()}
         content_encoding = 'utf-8'
         response = {

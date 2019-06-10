@@ -6,27 +6,24 @@ from encrytor import Encryptor
 from server_session import ServerSession
 from user import User, Users, UsersToPublicKeys
 from user_message import UserMessage
+from typing import Dict
 import json
 
 
 class ResponseCreator:
     # expects content is {username: str}
     def _search(self):
-        if self.content['username'] in Users.get_users():
-            self.response['key'] = Users.get_public_key(self.content['username'])
+        if Users.user_exists(self.content['username']):
+            self.response['key'] = Encryptor.get_public_key_as_string(Users.get_public_key(self.content['username']))
+            self.response['username'] = self.content['username']
         else:
             self.status = ResponseCreator.status_codes['USER_DO_NOT_EXIST']
 
     # expects content is {content: str, sender: str, recipient: str}
     def _message(self):
-        key = ServerSession.get_client_session_key(username=self.content['sender'])
-        decrypted = Encryptor.symmetrical_decrypt(
-            key=key,
-            message=self.content['content']
-        )
         message = UserMessage(recipient=self.content['recipient'],
                               sender=self.content['sender'],
-                              content=decrypted)
+                              content=self.content['content'])
         message.set_timestamp()
         try:
             message_recipient = Users.get_user(message.recipient)
@@ -101,22 +98,33 @@ class ResponseCreator:
         else:
             self.status = ResponseCreator.status_codes['WRONG_PASSWORD']
 
+    def _log_out(self):
+        pass
+
+    # used to get symmetrical key from recipient
+    # expects content {key: str}
+    def _connect(self):
+        message = UserMessage(recipient=self.content['recipient'],
+                              sender=self.content['sender'],
+                              content=self.content['content'])
+        message.set_timestamp()
+        try:
+            message_recipient = Users.get_user(message.recipient)
+            message_recipient.add_undelivered_message(message)
+        except KeyError:
+            self.status = ResponseCreator.status_codes['USER_DO_NOT_EXIST']
+
     def get_status_code(self) -> int:
         return self.status
 
     status_codes = {'OK': 0, 'ERR': 1, 'LOGIN_NOT_AVAILABLE': 2, 'INVALID_ACTION': 3, 'WRONG_PASSWORD': 4,
-                    'USER_DO_NOT_EXIST': 5}
+                    'USER_DO_NOT_EXIST': 5, 'AUTHENTICATION_REQUIRED': 6}
 
     def __init__(self, sender: str, action: str, content):
+        self.status: int = ResponseCreator.status_codes.get('OK')
         self.sender: str = sender
         self.action: str = action
-        if self.action not in ['authenticate', 'register']:
-            key = ServerSession.get_client_session_key(sender)
-            self.content = Encryptor.symmetrical_decrypt(key=key, message=content)
-            self.content = json.loads(self.content)
-        else:
-            self.content: dict = content
-        self.status: int = ResponseCreator.status_codes.get('OK')
+        self.content: dict = content
         self.response = {}
         self.valid_actions = {'search': self._search,
                               'message': self._message,
@@ -124,12 +132,37 @@ class ResponseCreator:
                               'getallmsgs': self._getallmsgs,
                               'register': self._register,
                               'authenticate': self._authenticate,
+                              'log_out': self._log_out,
+                              'connect': self._connect,
                               'block': self._block}
 
-    def process_request(self) -> str:
+    def _decrypt_from_client(self):
+        if self.action not in ['authenticate', 'register']:
+            key = ServerSession.get_client_session_key(self.sender)
+            self.content = Encryptor.symmetrical_decrypt(key=key, message=self.content)
+            self.content = json.loads(self.content)
+
+    def _encrypt_for_client(self):
+        if self.action not in ['authenticate', 'register']:
+            key = ServerSession.get_client_session_key(self.sender)
+            self.response = Encryptor.symmetrical_encrypt(key=key, message=json.dumps(self.response))
+            self.response = self.response.decode()
+
+    def process_request(self) -> Dict:
+        request_is_valid = True
+
+        if not ServerSession.session_established(self.sender) and self.action not in ['authenticate', 'register']:
+            self.status: int = ResponseCreator.status_codes.get('AUTHENTICATION_REQUIRED')
+            request_is_valid = False
+
         if self.action not in self.valid_actions:
             self.status = ResponseCreator.status_codes['INVALID_ACTION']
-            return ''
+            request_is_valid = False
 
-        self.valid_actions[self.action]()
-        return json.dumps(self.response)
+        if request_is_valid:
+            self._decrypt_from_client()
+            print('decoded request: ', self.content)
+            self.valid_actions[self.action]()
+            self._encrypt_for_client()
+
+        return self.response
