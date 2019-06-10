@@ -9,12 +9,7 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
-# Crypto is used for generation and saving keys because of the issue with loading keys from a file
-# after saving those generated with cryptography
-from Crypto.Cipher import PKCS1_OAEP
-from Crypto.PublicKey import RSA
 from typing import Tuple
-
 
 
 class Encryptor:
@@ -23,9 +18,22 @@ class Encryptor:
         return hashlib.sha256(message).hexdigest().encode()
 
     @staticmethod
-    def asymmetric_encrypt_message(key, message: bytes):
-        #cipher = PKCS1_OAEP.new(key=key)
-        #encrypted = cipher.encrypt(message)
+    def generate_keys(key_size=2048) -> Tuple:
+        private_key = rsa.generate_private_key(
+            public_exponent=65537,
+            key_size=4096,
+            backend=default_backend()
+        )
+        #private_key = RSA.generate(key_size)
+        return private_key.public_key(), private_key
+
+    @staticmethod
+    def asymmetric_encrypt_message(key, message) -> str:
+        # cipher = PKCS1_OAEP.new(key=key)
+        # encrypted = cipher.encrypt(message)
+        if isinstance(message, str):
+            message = message.encode()
+
         encrypted = key.encrypt(
             message,
             padding.OAEP(
@@ -34,12 +42,16 @@ class Encryptor:
                 label=None
             )
         )
-        return encrypted
+        return base64.b64encode(encrypted).decode('utf-8')
 
     @staticmethod
-    def asymmetric_decrypt_message(key, message: bytes, ):
-        #decrypt = PKCS1_OAEP.new(key=key)
-        #decrypt.decrypt(enscrypted_message)
+    def asymmetric_decrypt_message(key, message) -> str:
+        # decrypt = PKCS1_OAEP.new(key=key)
+        # decrypt.decrypt(enscrypted_message)
+        if isinstance(message, str):
+            message = message.encode()
+
+        message = base64.b64decode(message)
         original_message = key.decrypt(
             message,
             padding.OAEP(
@@ -48,24 +60,50 @@ class Encryptor:
                 label=None
             )
         )
-        return original_message
+        return original_message.decode()
 
     @staticmethod
-    def generate_keys(key_size=2048) -> Tuple:
-        private_key = RSA.generate(key_size)
-        return private_key.publickey(), private_key
+    def get_public_key_as_string(key) -> str:
+        pem = key.public_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PublicFormat.SubjectPublicKeyInfo
+        )
+        return pem.decode()
+
+    @staticmethod
+    def get_private_key_as_string(key) -> str:
+        pem = key.private_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PrivateFormat.PKCS8,
+            encryption_algorithm=serialization.NoEncryption()
+        )
+        return pem.decode()
 
     @staticmethod
     def save_private_key(private_key, location: str = '', file_name: str = 'private_key'):
-        private_pem = private_key.export_key().decode()
-        with open(location + file_name + '.pem', 'w') as pr:
-            pr.write(private_pem)
+        #private_pem = private_key.export_key().decode()
+        #with open(location + file_name + '.pem', 'w') as pr:
+        #    pr.write(private_pem)
+        pem = private_key.private_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PrivateFormat.PKCS8,
+            encryption_algorithm=serialization.NoEncryption()
+        )
+        with open(location + file_name + '.pem', 'wb') as f:
+            f.write(pem)
 
     @staticmethod
     def save_public_key(public_key, location: str = '', file_name: str = 'public_key'):
-        public_pem = public_key.export_key().decode()
-        with open(location + file_name + '.pem', 'w') as pr:
-            pr.write(public_pem)
+        #public_pem = public_key.export_key().decode()
+        #with open(location + file_name + '.pem', 'w') as pr:
+        #    pr.write(public_pem)
+        pem = public_key.public_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PublicFormat.SubjectPublicKeyInfo
+        )
+
+        with open(location + file_name + '.pem', 'wb') as f:
+            f.write(pem)
 
     @staticmethod
     def load_private_key(location: str = '', file_name: str = 'private_key'):
@@ -89,6 +127,22 @@ class Encryptor:
         return public_key
 
     @staticmethod
+    def load_private_key_from_string(key: str):
+        return serialization.load_pem_private_key(
+            key.encode(),
+            password=None,
+            backend=default_backend()
+        )
+
+    @staticmethod
+    def load_public_key_from_string(key: str):
+        key = key.encode()
+        return serialization.load_pem_public_key(
+            key,
+            backend=default_backend()
+        )
+
+    @staticmethod
     def load_public_key_as_bytes(location: str = '', file_name: str = 'public_key') -> bytes:
         with open(location + file_name + '.pem', "rb") as key_file:
             return key_file.read()
@@ -98,14 +152,18 @@ class Encryptor:
         return Fernet.generate_key()
 
     @staticmethod
-    def symmetrical_encrypt(key: bytes, message: bytes):
+    def symmetrical_encrypt(key: bytes, message):
+        if isinstance(message, str):
+            message = message.encode()
         f = Fernet(key)
         return f.encrypt(message)
 
     @staticmethod
-    def symmetrical_decrypt(key: bytes, message: bytes):
+    def symmetrical_decrypt(key: bytes, message) -> str:
+        if isinstance(message, str):
+            message = message.encode()
         f = Fernet(key)
-        return f.decrypt(message)
+        return f.decrypt(message).decode()
 
     @staticmethod
     def save_symmetrical_key(key: bytes, location: str = '', file_name: str = 'symmetric_key'):
@@ -158,10 +216,3 @@ class Encryptor:
             return True
         except InvalidSignature:
             return False
-
-
-#pubk1, prkey1 = Encryptor.generate_keys()
-#print(type(pubk1))
-#pubk2 = Encryptor.load_public_key(file_name='gleb_public_key')
-#prk2 = Encryptor.load_private_key(file_name='gleb_private_key')
-#print(type(pubk2))

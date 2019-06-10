@@ -1,3 +1,4 @@
+import json
 import socket
 import ssl
 import selectors
@@ -5,14 +6,22 @@ import traceback
 import request_sender
 from typing import Dict
 
+import client_session
+from encryptor import Encryptor
+
 
 class Request:
-    def __init__(self, action, request_sender, host='192.168.1.40', port=65000, request_content=None):
+    def __init__(self, action, request_sender, host='192.168.1.42', port=65000, request_content: Dict=None):
         self.sel = selectors.DefaultSelector()
         self.host, self.port = host, port
         self.action = action
         self.request_sender = request_sender
-        self.request_content = request_content
+        self.request_content: Dict = request_content
+        if self.action not in ['authenticate', 'register']:
+            key = client_session.ClientSession.get_server_symmetric_key()
+            request_content = json.dumps(self.request_content)
+            self.request_content = Encryptor.symmetrical_encrypt(key=key, message=request_content)
+            self.request_content = self.request_content.decode()
 
     def send_request(self):
         self._start_connection()
@@ -39,7 +48,8 @@ class Request:
             self.sel.close()
 
     def _create_request(self) -> Dict:
-        if self.action in ('search', 'message', 'save', 'getnewmsgs', 'getallmsgs', 'register'):
+        if self.action in ('search', 'message', 'log_out', 'connect',
+                           'getnewmsgs', 'getallmsgs', 'register', 'authenticate'):
             return {'type': "text/json", 'encoding': "utf-8",
                     'request_body': {'action': self.action, 'request_content': self.request_content,
                                      'request_sender': self.request_sender}}

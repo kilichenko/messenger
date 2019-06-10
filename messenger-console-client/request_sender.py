@@ -6,6 +6,9 @@ import struct
 import response_handler
 from typing import Dict
 
+import client_session
+from encryptor import Encryptor
+
 
 class RequestSender:
     def __init__(self, selector, sock, addr, request):
@@ -84,7 +87,8 @@ class RequestSender:
 
     def _process_response_json_content(self):
         rspns = response_handler.ResponseHandler(self.response.get('action'),
-                                                 self.response.get('response_content'), self.response.get('status'))
+                                                 json.loads(self.response.get('response_content')),
+                                                 self.response.get('status'))
         output = rspns.process_response()
         if output:
             print(output)
@@ -148,6 +152,7 @@ class RequestSender:
         request_body = self.request["request_body"]
         content_type = self.request["type"]
         content_encoding = self.request["encoding"]
+
         if content_type == "text/json":
             req = {
                 "content_bytes": self._json_encode(request_body, content_encoding),

@@ -2,13 +2,24 @@ import json
 from typing import List, Dict
 
 from encryptor import Encryptor
-import client_session
 from user_message import UserMessage
 
 
 class Contact:
-    def __init__(self, username):
+    def __init__(self, username, messages: List[UserMessage] = None):
         self.username: str = username
+        if messages is None:
+            self.messages: List[UserMessage] = []
+            pass
+        else:
+            self.messages = messages
+            pass
+
+    def add_message(self, message: UserMessage):
+        self.messages.append(message)
+
+    def get_messages(self):
+        return self.messages
 
     def get_username(self):
         return self.username
@@ -18,7 +29,8 @@ class Contact:
 
     @classmethod
     def from_json(cls, arg):
-        return Contact(username=arg['username'])
+        return Contact(username=arg['username'],
+                       messages=list(map(UserMessage.from_json, arg["messages"])))
 
 
 # singleton
@@ -45,18 +57,18 @@ class ContactsToPublicKeys:
         return cls._instance
 
     @classmethod
-    def serialize(cls, path: str = client_session.ClientSession.get_username() + 'contacts_to_public_keys.txt'):
+    def serialize(cls, username, path: str = '_contacts_to_public_keys.txt'):
         res = {}
         for k, v in cls.get_instance().contacts_to_public_keys.items():
             res[k] = Encryptor.get_public_key_as_string(v)
-        with open(path, 'wb') as f:
+        with open(username + path, 'wb') as f:
             f.write(json.dumps(res).encode())
 
     @classmethod
-    def deserialize(cls, path: str = client_session.ClientSession.get_username() + 'contacts_to_public_keys.txt'):
+    def deserialize(cls, username, path: str = '_contacts_to_public_keys.txt'):
         try:
             res = {}
-            with open(path, 'rb') as f:
+            with open(username + path, 'rb') as f:
                 file_content = f.read()
                 if file_content != b'':
                     res = json.loads(file_content)
@@ -79,38 +91,43 @@ class ContactsToPublicKeys:
 # singleton
 class Contacts:
     class __Contacts:
-        def __init__(self, contacts: List[Contact] = None):
+        def __init__(self, contacts: List[Contact] = None, pending_connects: List[Contact] = None):
             if contacts is None:
                 self.contacts = []
             else:
                 self.contacts = contacts
+            if pending_connects is None:
+                self.pending_connects = []
+            else:
+                self.pending_connects = pending_connects
 
         def __repr__(self):
             return json.dumps(self, default=lambda o: o.__dict__, indent=3)
 
     _instance: __Contacts = None
 
-    def __init__(self, contacts: List[Contact] = None, ):
-        Contacts._instance = Contacts.__Contacts(contacts)
+    def __init__(self, contacts: List[Contact] = None, pending_connects: List[Dict] = None):
+        Contacts._instance = Contacts.__Contacts(contacts, pending_connects)
 
     @classmethod
     def from_json(cls, arg):
-        return Contacts(contacts=list(map(Contact.from_json, arg["contacts"])))
+        return Contacts(contacts=list(map(Contact.from_json, arg["contacts"])),
+                        pending_connects=list(map(lambda o: o, arg["pending_connects"])))
 
     @classmethod
-    def serialize(cls, path: str = client_session.ClientSession.get_username() + 'contacts.txt'):
-        with open(path, 'w') as f:
+    def serialize(cls, username, path: str = '_contacts.txt'):
+        with open(username + path, 'w') as f:
             f.write(str(cls.get_instance()))
-        ContactsToPublicKeys.serialize()
+        ContactsToPublicKeys.serialize(username)
 
     @classmethod
-    def deserialize(cls, path: str = client_session.ClientSession.get_username() + 'contacts.txt'):
+    def deserialize(cls, username, path: str = '_contacts.txt'):
         try:
-            with open(path, 'r') as f:
+            with open(username + path, 'r') as f:
                 file_content = f.read()
                 if file_content != '':
                     Contacts.from_json(json.loads(file_content))
-            ContactsToPublicKeys.deserialize()
+            ContactsToPublicKeys.deserialize(username)
         except FileNotFoundError:
             cls._instance = cls.__Contacts()
         finally:
@@ -124,27 +141,45 @@ class Contacts:
         return cls._instance
 
     @classmethod
-    def get_users(cls):
+    def get_contacts(cls):
         return cls.get_instance().contacts
 
     @classmethod
-    def get_user(cls, username: str):
+    def get_contact(cls, username: str):
         for usr in cls.get_instance().contacts:
             if usr.username == username:
                 return usr
         raise KeyError
 
     @classmethod
-    def add_user(cls, user: Contact):
-        if isinstance(user, Contact):
-            cls.get_instance().contacts.append(user)
+    def add_contact(cls, contact: Contact):
+        if isinstance(contact, Contact):
+            cls.get_instance().contacts.append(contact)
         else:
             raise TypeError
 
     @classmethod
-    def user_exists(cls, username):
+    def contact_exists(cls, username):
         return username in ContactsToPublicKeys.get_instance().contacts_to_public_keys
 
     @classmethod
     def get_public_key(cls, username: str):
         return ContactsToPublicKeys.get_instance().contacts_to_public_keys[username]
+
+    @classmethod
+    def add_pending_connect(cls, contact: Contact):
+        cls.get_instance().pending_connects.append(contact)
+
+    @classmethod
+    def get_pending_connects(cls):
+        return cls.get_instance().pending_connects
+
+    @classmethod
+    def pending_connect_exists(cls, username):
+        return username in Contacts.get_instance().pending_connects
+
+    @classmethod
+    def remove_pending_connect(cls, username: str):
+        for index, usr in enumerate(cls.get_instance().pending_connects):
+            if usr.username == username:
+                return cls.get_instance().pending_connects.pop(index)

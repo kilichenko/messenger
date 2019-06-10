@@ -1,20 +1,18 @@
 import base64
 
-from idna import unicode
-
+from client_session import ClientSession
+from contact import Contacts, Contact
 from encryptor import Encryptor
 from request import Request
 from user_message import UserMessage
 
 
-def load_keys():
-    server_pub_key = Encryptor.load_public_key()
-    gleb_pub_key = Encryptor.load_public_key_as_bytes(file_name='gleb_public_key')
-    gleb_pr_key = Encryptor.load_private_key(file_name='gleb_public_key')
-
-
-def register(username, password, public_key, email):
-    content = {'username': username, 'password': password, 'public_key': public_key.decode(), 'email': email}
+def register(username, password, email):
+    public_key, private_key = Encryptor.generate_keys()
+    Encryptor.save_private_key(private_key=private_key, file_name=username + '_private_key')
+    Encryptor.save_public_key(public_key=public_key, file_name=username + '_public_key')
+    content = {'username': username, 'password': password,
+               'public_key': Encryptor.get_public_key_as_string(public_key), 'email': email}
     request = Request(action='register', request_content=content, request_sender=request_sender)
     request.send_request()
 
@@ -26,9 +24,6 @@ def generate_new_keys():
     gleb_pub_key, gleb_pr_key = Encryptor.generate_keys()
     Encryptor.save_public_key(gleb_pub_key, file_name='gleb_public_key')
     Encryptor.save_private_key(gleb_pr_key, file_name='gleb_private_key')
-
-
-request_sender = 'gleb'
 
 
 def send_msgs():
@@ -44,23 +39,52 @@ def send_msgs():
         request.send_request()
 
 
-def send_message(content, sender):
-    request = Request(action='message', request_content=content, request_sender=sender)
+def send_message(content, sender, recipient):
+    request = Request(action='message',
+                      request_content=UserMessage(request_sender, recipient, content).as_dict(),
+                      request_sender=sender)
     request.send_request()
 
 
+def connect_to_recipient(recipient: str, sender: str):
+    key = Encryptor.generate_symmetric_key()
+    encrypted_key = Encryptor.asymmetric_encrypt_message(key=Contacts.get_public_key(recipient),
+                                                         message=key)
+    Contacts.add_pending_connect(Contact(recipient))
+    request = Request(action='connect',
+                      request_content=UserMessage(request_sender, recipient, encrypted_key).as_dict(),
+                      request_sender=sender)
+    request.send_request()
+
+
+def search(username, sender):
+    request = Request(action='search',
+                      request_content={'username': username},
+                      request_sender=sender)
+    request.send_request()
+
+
+def recieve_msgs(sender):
+    request = Request(action='getnewmsgs',
+                      request_content={},
+                      request_sender=sender)
+    request.send_request()
+
+
+request_sender = 'ivan'
+
+
 def main():
-    pub_k = Encryptor.load_public_key()
-    gleb_pub_key = Encryptor.load_public_key(file_name='gleb_public_key')
-    gleb_pr_key = Encryptor.load_private_key(file_name='gleb_private_key')
+    ClientSession(request_sender, request_sender)
+    Contacts.deserialize(request_sender)
+    ClientSession.establish_session()
+    #search('ivan', 'gleb')
+    #connect_to_recipient('ivan', 'gleb')
+    recieve_msgs(request_sender)
+    Contacts.serialize(request_sender)
 
-    message = b'fuck it'
-    encrypted = Encryptor.asymmetric_encrypt_message(key=pub_k, message=message)
-    print(type(encrypted), encrypted)
-    coded = base64.b64encode(encrypted).decode('utf-8')
-    print(coded)
-    send_message(UserMessage(request_sender, 'ivan', coded).as_dict(), request_sender)
-
+    # register('gleb', 'gleb', 'mail.@gmail.com')
+    # register('ivan', 'ivan', 'mail.@gmail.com')
 
 
 if __name__ == "__main__":
