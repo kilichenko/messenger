@@ -40,3 +40,7 @@ class ServerSession:
     @classmethod
     def session_established(cls, username):
         return username in cls.get_instance().clients_to_session_keys
+
+    @classmethod
+    def close_client_session(cls, username):
+        del cls.get_instance().clients_to_session_keys[username]

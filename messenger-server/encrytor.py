@@ -24,13 +24,10 @@ class Encryptor:
             key_size=4096,
             backend=default_backend()
         )
-        #private_key = RSA.generate(key_size)
         return private_key.public_key(), private_key
 
     @staticmethod
     def asymmetric_encrypt_message(key, message) -> str:
-        # cipher = PKCS1_OAEP.new(key=key)
-        # encrypted = cipher.encrypt(message)
         if isinstance(message, str):
             message = message.encode()
 
@@ -46,8 +43,6 @@ class Encryptor:
 
     @staticmethod
     def asymmetric_decrypt_message(key, message) -> str:
-        # decrypt = PKCS1_OAEP.new(key=key)
-        # decrypt.decrypt(enscrypted_message)
         if isinstance(message, str):
             message = message.encode()
 
@@ -80,10 +75,7 @@ class Encryptor:
         return pem.decode()
 
     @staticmethod
-    def save_private_key(private_key, location: str = '', file_name: str = 'private_key'):
-        #private_pem = private_key.export_key().decode()
-        #with open(location + file_name + '.pem', 'w') as pr:
-        #    pr.write(private_pem)
+    def save_private_key(private_key, location: str = 'data/', file_name: str = 'private_key'):
         pem = private_key.private_bytes(
             encoding=serialization.Encoding.PEM,
             format=serialization.PrivateFormat.PKCS8,
@@ -93,10 +85,7 @@ class Encryptor:
             f.write(pem)
 
     @staticmethod
-    def save_public_key(public_key, location: str = '', file_name: str = 'public_key'):
-        #public_pem = public_key.export_key().decode()
-        #with open(location + file_name + '.pem', 'w') as pr:
-        #    pr.write(public_pem)
+    def save_public_key(public_key, location: str = 'data/', file_name: str = 'public_key'):
         pem = public_key.public_bytes(
             encoding=serialization.Encoding.PEM,
             format=serialization.PublicFormat.SubjectPublicKeyInfo
@@ -106,8 +95,7 @@ class Encryptor:
             f.write(pem)
 
     @staticmethod
-    def load_private_key(location: str = '', file_name: str = 'private_key'):
-        # return RSA.import_key(open(location + file_name + '.pem', 'r').read())
+    def load_private_key(location: str = 'data/', file_name: str = 'private_key'):
         with open(location + file_name + '.pem', "rb") as key_file:
             private_key = serialization.load_pem_private_key(
                 key_file.read(),
@@ -117,8 +105,7 @@ class Encryptor:
         return private_key
 
     @staticmethod
-    def load_public_key(location: str = '', file_name: str = 'public_key'):
-        # return RSA.import_key(open(location + file_name + '.pem', 'r').read())
+    def load_public_key(location: str = 'data/', file_name: str = 'public_key'):
         with open(location + file_name + '.pem', "rb") as key_file:
             public_key = serialization.load_pem_public_key(
                 key_file.read(),
@@ -136,14 +123,16 @@ class Encryptor:
 
     @staticmethod
     def load_public_key_from_string(key: str):
-        key = key.encode()
+        if isinstance(key, str):
+            key = key.encode()
+
         return serialization.load_pem_public_key(
             key,
             backend=default_backend()
         )
 
     @staticmethod
-    def load_public_key_as_bytes(location: str = '', file_name: str = 'public_key') -> bytes:
+    def load_public_key_as_bytes(location: str = 'data/', file_name: str = 'public_key') -> bytes:
         with open(location + file_name + '.pem', "rb") as key_file:
             return key_file.read()
 
@@ -166,12 +155,12 @@ class Encryptor:
         return f.decrypt(message).decode()
 
     @staticmethod
-    def save_symmetrical_key(key: bytes, location: str = '', file_name: str = 'symmetric_key'):
+    def save_symmetrical_key(key: bytes, location: str = 'data/', file_name: str = 'symmetric_key'):
         with open(location + file_name + '.key', 'wb') as f:
             f.write(key)
 
     @staticmethod
-    def load_symmetrical_key(location: str = '', file_name: str = 'symmetric_key'):
+    def load_symmetrical_key(location: str = 'data/', file_name: str = 'symmetric_key'):
         with open(location + file_name + 'key', 'rb') as f:
             return f.read()  # The key will be type bytes
 

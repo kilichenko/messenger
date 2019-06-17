@@ -1,7 +1,9 @@
 import base64
+import json
 
+import client_session
 from client_session import ClientSession
-from contact import Contacts, Contact
+from contact import Contacts, Contact, ContactsToKeys
 from encryptor import Encryptor
 from request import Request
 from user_message import UserMessage
@@ -15,15 +17,6 @@ def register(username, password, email):
                'public_key': Encryptor.get_public_key_as_string(public_key), 'email': email}
     request = Request(action='register', request_content=content, request_sender=request_sender)
     request.send_request()
-
-
-def generate_new_keys():
-    ivan_pub_key, ivan_pr_key = Encryptor.generate_keys()
-    Encryptor.save_public_key(ivan_pub_key, file_name='ivan_public_key')
-    Encryptor.save_private_key(ivan_pr_key, file_name='ivan_private_key')
-    gleb_pub_key, gleb_pr_key = Encryptor.generate_keys()
-    Encryptor.save_public_key(gleb_pub_key, file_name='gleb_public_key')
-    Encryptor.save_private_key(gleb_pr_key, file_name='gleb_private_key')
 
 
 def send_msgs():
@@ -48,11 +41,15 @@ def send_message(content, sender, recipient):
 
 def connect_to_recipient(recipient: str, sender: str):
     key = Encryptor.generate_symmetric_key()
-    encrypted_key = Encryptor.asymmetric_encrypt_message(key=Contacts.get_public_key(recipient),
+    encrypted_key = Encryptor.asymmetric_encrypt_message(key=ContactsToKeys.get_contact_public_key(recipient),
                                                          message=key)
-    Contacts.add_pending_connect(Contact(recipient))
+    Contacts.add_contact(Contact(recipient))
+    content = {}
+    content['key'] = encrypted_key
+    content['public_key'] = Encryptor. \
+        get_public_key_as_string(client_session.ClientSession.get_client_public_key())
     request = Request(action='connect',
-                      request_content=UserMessage(request_sender, recipient, encrypted_key).as_dict(),
+                      request_content=UserMessage(request_sender, recipient, json.dumps(content)).as_dict(),
                       request_sender=sender)
     request.send_request()
 
@@ -71,20 +68,28 @@ def recieve_msgs(sender):
     request.send_request()
 
 
+def delete_account():
+    request = Request(action='delete_account',
+                      request_content={'username': ClientSession.get_instance().username,
+                                       'password': ClientSession.get_instance().password},
+                      request_sender=ClientSession.get_instance().username)
+    request.send_request()
+
+
 request_sender = 'ivan'
 
 
 def main():
+    #register(request_sender, request_sender, 'ggteeg@gmail.com')
+
     ClientSession(request_sender, request_sender)
     Contacts.deserialize(request_sender)
     ClientSession.establish_session()
-    #search('ivan', 'gleb')
-    #connect_to_recipient('ivan', 'gleb')
+
+    #search('ivan', request_sender)
+    #connect_to_recipient('ivan', request_sender)
     recieve_msgs(request_sender)
     Contacts.serialize(request_sender)
-
-    # register('gleb', 'gleb', 'mail.@gmail.com')
-    # register('ivan', 'ivan', 'mail.@gmail.com')
 
 
 if __name__ == "__main__":

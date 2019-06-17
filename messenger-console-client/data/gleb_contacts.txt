@@ -1,0 +1,9 @@
+{
+   "contacts": [
+      {
+         "username": "ivan",
+         "connected": false,
+         "messages": []
+      }
+   ]
+}

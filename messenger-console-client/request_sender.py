@@ -6,8 +6,6 @@ import struct
 import response_handler
 from typing import Dict
 
-import client_session
-from encryptor import Encryptor
 
 
 class RequestSender:

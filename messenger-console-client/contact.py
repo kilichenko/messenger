@@ -6,8 +6,9 @@ from user_message import UserMessage
 
 
 class Contact:
-    def __init__(self, username, messages: List[UserMessage] = None):
+    def __init__(self, username, connected: bool = False, messages: List[UserMessage] = None):
         self.username: str = username
+        self.connected: bool = connected
         if messages is None:
             self.messages: List[UserMessage] = []
             pass
@@ -24,31 +25,42 @@ class Contact:
     def get_username(self):
         return self.username
 
+    def is_connected(self) -> bool:
+        return self.connected
+
+    def set_connected(self, connected: bool):
+        self.connected = connected
+
     def __repr__(self):
         return json.dumps(self, default=lambda o: o.__dict__, indent=3)
 
     @classmethod
     def from_json(cls, arg):
         return Contact(username=arg['username'],
-                       messages=list(map(UserMessage.from_json, arg["messages"])))
+                       messages=list(map(UserMessage.from_json, arg["messages"])),
+                       connected=arg['connected'])
 
 
 # singleton
-class ContactsToPublicKeys:
+class ContactsToKeys:
     class __ContactsToPublicKeys:
         def __init__(self):
-            self.contacts_to_public_keys: Dict = {}
+            self.contacts_to_keys: Dict = {}
 
         def __repr__(self):
             res = {}
-            for k, v in self.contacts_to_public_keys.items():
-                res[k] = Encryptor.get_public_key_as_string(v)
+            if self.contacts_to_keys != {}:
+                for k, v in self.contacts_to_keys.items():
+                    res[k] = {
+                        'public_key': Encryptor.get_public_key_as_string(v['public_key']),
+                        'symmetric_key': v['symmetric_key']
+                    }
             return json.dumps(res, indent=3)
 
     _instance: __ContactsToPublicKeys = None
 
     def __init__(self):
-        ContactsToPublicKeys._instance = ContactsToPublicKeys.__ContactsToPublicKeys()
+        ContactsToKeys._instance = ContactsToKeys.__ContactsToPublicKeys()
 
     @classmethod
     def get_instance(cls):
@@ -57,82 +69,111 @@ class ContactsToPublicKeys:
         return cls._instance
 
     @classmethod
-    def serialize(cls, username, path: str = '_contacts_to_public_keys.txt'):
+    def serialize(cls, username, location: str = 'data/', file_name: str = '_contacts_to_keys'):
         res = {}
-        for k, v in cls.get_instance().contacts_to_public_keys.items():
-            res[k] = Encryptor.get_public_key_as_string(v)
-        with open(username + path, 'wb') as f:
+
+        for k, v in cls.get_instance().contacts_to_keys.items():
+            try:
+                res[k] = {
+                    'public_key': Encryptor.get_public_key_as_string(v['public_key']),
+                    'symmetric_key': v['symmetric_key']
+                }
+            except KeyError:
+                res[k] = {
+                    'public_key': Encryptor.get_public_key_as_string(v['public_key']),
+                    'symmetric_key': ''
+                }
+
+        with open(location + username + file_name + '.txt', 'wb') as f:
             f.write(json.dumps(res).encode())
 
     @classmethod
-    def deserialize(cls, username, path: str = '_contacts_to_public_keys.txt'):
+    def deserialize(cls, username, location: str = 'data/', file_name: str = '_contacts_to_keys'):
         try:
-            res = {}
-            with open(username + path, 'rb') as f:
+            with open(location + username + file_name + '.txt', 'rb') as f:
                 file_content = f.read()
                 if file_content != b'':
                     res = json.loads(file_content)
                     for k, v in res.items():
-                        cls.get_instance().contacts_to_public_keys[k] = Encryptor.load_public_key_from_string(v)
+                        cls.get_instance().contacts_to_keys[k] = {
+                            'public_key': Encryptor.load_public_key_from_string(v['public_key']),
+                            'symmetric_key': v['symmetric_key']
+                        }
         except FileNotFoundError:
             print('No such file')
+
 
     @classmethod
     def add_contact_public_key(cls, username: str, public_key):
         if isinstance(public_key, str):
             public_key = Encryptor.load_public_key_from_string(public_key)
-        cls.get_instance().contacts_to_public_keys[username] = public_key
+        cls.get_instance().contacts_to_keys[username] = {
+            'public_key':  public_key,
+            'symmetric_key': cls.get_instance().contacts_to_keys[username]['symmetric_key']
+        }
 
     @classmethod
     def get_contact_public_key(cls, username: str):
-        return ContactsToPublicKeys.get_instance().contacts_to_public_keys[username]
+        return ContactsToKeys.get_instance().contacts_to_keys[username]['public_key']
+
+    @classmethod
+    def add_contact_symmetric_key(cls, username: str, symmetric_key):
+        if isinstance(symmetric_key, bytes):
+            symmetric_key = symmetric_key.decode()
+        cls.get_instance().contacts_to_keys[username] = {
+            'public_key': cls.get_instance().contacts_to_keys[username]['public_key'],
+            'symmetric_key':  symmetric_key
+        }
+
+    @classmethod
+    def get_contact_symmetric_key(cls, username: str):
+        return ContactsToKeys.get_instance().contacts_to_keys[username]['symmetric_key']
+
+    @classmethod
+    def delete_all_records(cls):
+        cls.get_instance().contacts_to_keys = {}
 
 
 # singleton
 class Contacts:
     class __Contacts:
-        def __init__(self, contacts: List[Contact] = None, pending_connects: List[Contact] = None):
+        def __init__(self, contacts: List[Contact] = None, ):
             if contacts is None:
                 self.contacts = []
             else:
                 self.contacts = contacts
-            if pending_connects is None:
-                self.pending_connects = []
-            else:
-                self.pending_connects = pending_connects
 
         def __repr__(self):
             return json.dumps(self, default=lambda o: o.__dict__, indent=3)
 
     _instance: __Contacts = None
 
-    def __init__(self, contacts: List[Contact] = None, pending_connects: List[Dict] = None):
-        Contacts._instance = Contacts.__Contacts(contacts, pending_connects)
+    def __init__(self, contacts: List[Contact] = None):
+        Contacts._instance = Contacts.__Contacts(contacts)
 
     @classmethod
     def from_json(cls, arg):
-        return Contacts(contacts=list(map(Contact.from_json, arg["contacts"])),
-                        pending_connects=list(map(lambda o: o, arg["pending_connects"])))
+        return Contacts(contacts=list(map(Contact.from_json, arg["contacts"])))
 
     @classmethod
-    def serialize(cls, username, path: str = '_contacts.txt'):
-        with open(username + path, 'w') as f:
+    def serialize(cls, username, location: str = 'data/', file_name: str = '_contacts'):
+        with open(location + username + file_name + '.txt', 'w') as f:
             f.write(str(cls.get_instance()))
-        ContactsToPublicKeys.serialize(username)
+        ContactsToKeys.serialize(username)
 
     @classmethod
-    def deserialize(cls, username, path: str = '_contacts.txt'):
+    def deserialize(cls, username, location: str = 'data/', file_name: str = '_contacts'):
         try:
-            with open(username + path, 'r') as f:
+            with open(location + username + file_name + '.txt', 'r') as f:
                 file_content = f.read()
                 if file_content != '':
                     Contacts.from_json(json.loads(file_content))
-            ContactsToPublicKeys.deserialize(username)
+            ContactsToKeys.deserialize(username)
         except FileNotFoundError:
             cls._instance = cls.__Contacts()
         finally:
             print(Contacts.get_instance())
-            print(ContactsToPublicKeys.get_instance())
+            print(ContactsToKeys.get_instance())
 
     @classmethod
     def get_instance(cls):
@@ -154,32 +195,16 @@ class Contacts:
     @classmethod
     def add_contact(cls, contact: Contact):
         if isinstance(contact, Contact):
-            cls.get_instance().contacts.append(contact)
+            if not cls.contact_exists(contact.username):
+                cls.get_instance().contacts.append(contact)
         else:
             raise TypeError
 
     @classmethod
     def contact_exists(cls, username):
-        return username in ContactsToPublicKeys.get_instance().contacts_to_public_keys
+        return any(contact.username == username for contact in cls.get_instance().contacts)
+
 
     @classmethod
-    def get_public_key(cls, username: str):
-        return ContactsToPublicKeys.get_instance().contacts_to_public_keys[username]
-
-    @classmethod
-    def add_pending_connect(cls, contact: Contact):
-        cls.get_instance().pending_connects.append(contact)
-
-    @classmethod
-    def get_pending_connects(cls):
-        return cls.get_instance().pending_connects
-
-    @classmethod
-    def pending_connect_exists(cls, username):
-        return username in Contacts.get_instance().pending_connects
-
-    @classmethod
-    def remove_pending_connect(cls, username: str):
-        for index, usr in enumerate(cls.get_instance().pending_connects):
-            if usr.username == username:
-                return cls.get_instance().pending_connects.pop(index)
+    def delete_all_contacts(cls):
+        cls.get_instance().contacts = []

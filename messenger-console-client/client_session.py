@@ -14,8 +14,6 @@ class ClientSession:
             self.server_symmetric_key = None
             self.server_pub_k = Encryptor.load_public_key()
             self.password = Encryptor.asymmetric_encrypt_message(key=self.server_pub_k, message=password)
-            self.recipients_symmetric_keys: Dict = {} #probably should be in ContactsToSymmetricKeys
-            #self.recipients_public_keys: Dict = {}
 
     _instance: __ClientSession = None
 
@@ -50,26 +48,8 @@ class ClientSession:
     def set_server_symmetric_key(cls, symmetric_key):
         cls.get_instance().server_symmetric_key = Encryptor.asymmetric_decrypt_message(
             key=cls.get_instance().client_private_key, message=symmetric_key)
-        print(cls.get_instance().server_symmetric_key)
+        print('Server symmetric key: ',cls.get_instance().server_symmetric_key)
 
     @classmethod
     def get_server_symmetric_key(cls):
         return cls._instance.server_symmetric_key
-
-    @classmethod
-    def add_recipient_symmetric_key(cls, username: str, key):
-        key = Encryptor.asymmetric_decrypt_message(key=cls.get_instance().client_private_key, message=key)
-        cls.get_instance().recipients_symmetric_keys[username] = key
-        print('decrypted symmetric key added for ', username, ': ', key)
-
-    @classmethod
-    def get_recipient_symmetric_key(cls, username: str):
-        return cls.get_instance().recipients_symmetric_keys[username]
-
-    #@classmethod
-    #def add_recipient_public_key(cls, username, key):
-    #    cls.get_instance().recipients_public_keys[username] = key
-
-    #@classmethod
-    #def get_recipient_public_key(cls, username: str):
-    #    return cls.get_instance().recipients_public_keys[username]

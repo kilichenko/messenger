@@ -1,0 +1,28 @@
+{
+   "users": [
+      {
+         "username": "anna",
+         "password": "55579b557896d0ce1764c47fed644f9b35f58bad620674af23f356d80ed0c503",
+         "email": "ggteeg@gmail.com",
+         "undelivered_messages": []
+      },
+      {
+         "username": "gleb",
+         "password": "a9959bf60b9ee899cd97391b2c5eb555c3dcf271ff277d5bcf06fb5536a9261a",
+         "email": "ggteeg@gmail.com",
+         "undelivered_messages": []
+      },
+      {
+         "username": "ivan",
+         "password": "cd0b9452fc376fc4c35a60087b366f70d883fc901524daf1f122fbd319384f6a",
+         "email": "ggteeg@gmail.com",
+         "undelivered_messages": []
+      },
+      {
+         "username": "vova",
+         "password": "d6e89e66652561cd3a4b377c35d9c9dcfaba88895da9668442984d59c308e91d",
+         "email": "ggteeg@gmail.com",
+         "undelivered_messages": []
+      }
+   ]
+}

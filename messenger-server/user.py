@@ -2,6 +2,7 @@ import json
 from typing import List, Dict
 
 from encrytor import Encryptor
+from server_session import ServerSession
 from user_message import UserMessage
 
 
@@ -23,6 +24,9 @@ class User:
         password = Encryptor.hash_message(password.encode())
         password = password.decode()
         return password == self.password
+
+    def has_pending_connect_from(self, username: str) -> bool:
+        return any(msg.sender == username for msg in self.undelivered_messages)
 
     def add_undelivered_message(self, message: UserMessage):
         if isinstance(message, UserMessage):
@@ -50,7 +54,7 @@ class UsersToPublicKeys:
 
         def __repr__(self):
             res = {}
-            for k ,v in self.users_to_public_keys.items():
+            for k, v in self.users_to_public_keys.items():
                 res[k] = Encryptor.get_public_key_as_string(v)
             return json.dumps(res, indent=3)
 
@@ -66,18 +70,18 @@ class UsersToPublicKeys:
         return cls._instance
 
     @classmethod
-    def serialize(cls, path: str = 'users_to_public_keys.txt'):
+    def serialize(cls, location: str = 'data/', file_name: str = 'users_to_public_keys.txt'):
         res = {}
         for k, v in cls.get_instance().users_to_public_keys.items():
             res[k] = Encryptor.get_public_key_as_string(v)
-        with open(path, 'wb') as f:
+        with open(location + file_name, 'wb') as f:
             f.write(json.dumps(res).encode())
 
     @classmethod
-    def deserialize(cls, path: str = 'users_to_public_keys.txt'):
+    def deserialize(cls, location: str = 'data/', file_name: str = 'users_to_public_keys.txt'):
         try:
             res = {}
-            with open(path, 'rb') as f:
+            with open(location + file_name, 'rb') as f:
                 file_content = f.read()
                 if file_content != b'':
                     res = json.loads(file_content)
@@ -95,6 +99,12 @@ class UsersToPublicKeys:
     @classmethod
     def get_public_key(cls, username: str):
         return UsersToPublicKeys.get_instance().users_to_public_keys[username]
+
+    @classmethod
+    def delete_user_record(cls, username):
+        del cls.get_instance().users_to_public_keys[username]
+
+
 
 # singleton
 class Users:
@@ -118,15 +128,15 @@ class Users:
         return Users(users=list(map(User.from_json, arg["users"])))
 
     @classmethod
-    def serialize(cls, path: str = 'users.txt'):
-        with open(path, 'w') as f:
+    def serialize(cls, location: str = 'data/', file_name: str = 'users.txt'):
+        with open(location + file_name, 'w') as f:
             f.write(str(cls.get_instance()))
         UsersToPublicKeys.serialize()
 
     @classmethod
-    def deserialize(cls, path: str = 'users.txt'):
+    def deserialize(cls, location: str = 'data/', file_name: str = 'users.txt'):
         try:
-            with open(path, 'r') as f:
+            with open(location + file_name, 'r') as f:
                 file_content = f.read()
                 if file_content != '':
                     Users.from_json(json.loads(file_content))
@@ -168,3 +178,12 @@ class Users:
     @classmethod
     def get_public_key(cls, username: str):
         return UsersToPublicKeys.get_instance().users_to_public_keys[username]
+
+    @classmethod
+    def delete_user_account(cls, username: str):
+        UsersToPublicKeys.delete_user_record(username)
+        users = cls.get_instance().users
+        for index, usr in enumerate(users):
+            if usr.username == username:
+                users.pop(index)
+

@@ -11,7 +11,7 @@ from encryptor import Encryptor
 
 
 class Request:
-    def __init__(self, action, request_sender, host='192.168.1.42', port=65000, request_content: Dict=None):
+    def __init__(self, action, request_sender, host='192.168.1.45', port=65000, request_content: Dict=None):
         self.sel = selectors.DefaultSelector()
         self.host, self.port = host, port
         self.action = action
@@ -49,7 +49,7 @@ class Request:
 
     def _create_request(self) -> Dict:
         if self.action in ('search', 'message', 'log_out', 'connect',
-                           'getnewmsgs', 'getallmsgs', 'register', 'authenticate'):
+                           'getnewmsgs', 'getallmsgs', 'register', 'authenticate', 'delete_account'):
             return {'type': "text/json", 'encoding': "utf-8",
                     'request_body': {'action': self.action, 'request_content': self.request_content,
                                      'request_sender': self.request_sender}}
