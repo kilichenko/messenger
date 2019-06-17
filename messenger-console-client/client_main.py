@@ -76,7 +76,7 @@ def delete_account():
     request.send_request()
 
 
-request_sender = 'ivan'
+request_sender = 'gleb'
 
 
 def main():
@@ -86,9 +86,10 @@ def main():
     Contacts.deserialize(request_sender)
     ClientSession.establish_session()
 
+    send_message('some really important message', request_sender, 'ivan')
     #search('ivan', request_sender)
     #connect_to_recipient('ivan', request_sender)
-    recieve_msgs(request_sender)
+    #recieve_msgs(request_sender)
     Contacts.serialize(request_sender)
 
 

@@ -42,7 +42,7 @@ def generate_new_keys():
 
 def main():
     Users.deserialize()
-    server = Server('192.168.1.45', 65000)
+    server = Server('192.168.1.49', 65000)
     server.run()
     Users.serialize()
 

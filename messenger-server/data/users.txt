@@ -16,7 +16,14 @@
          "username": "ivan",
          "password": "cd0b9452fc376fc4c35a60087b366f70d883fc901524daf1f122fbd319384f6a",
          "email": "ggteeg@gmail.com",
-         "undelivered_messages": []
+         "undelivered_messages": [
+            {
+               "sender": "gleb",
+               "recipient": "ivan",
+               "content": "some really important message",
+               "timestamp": 1560812719.542766
+            }
+         ]
       },
       {
          "username": "vova",

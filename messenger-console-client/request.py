@@ -11,7 +11,7 @@ from encryptor import Encryptor
 
 
 class Request:
-    def __init__(self, action, request_sender, host='192.168.1.45', port=65000, request_content: Dict=None):
+    def __init__(self, action, request_sender, host='192.168.1.49', port=65000, request_content: Dict=None):
         self.sel = selectors.DefaultSelector()
         self.host, self.port = host, port
         self.action = action
